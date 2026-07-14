@@ -1,0 +1,1054 @@
+[
+  {
+    "word": "abandon",
+    "meaning": "放弃",
+    "meanings": [
+      "放弃",
+      "遗弃",
+      "放纵"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈbændən/",
+    "example": "They had to abandon the sinking ship.",
+    "examples": [
+      "They had to abandon the sinking ship."
+    ],
+    "exampleTranslations": [
+      "他们不得不放弃那艘正在下沉的船。"
+    ]
+  },
+  {
+    "word": "ability",
+    "meaning": "能力",
+    "meanings": [
+      "能力",
+      "才能",
+      "本领"
+    ],
+    "pos": "n.",
+    "phonetic": "/əˈbɪləti/",
+    "example": "She has the ability to learn quickly.",
+    "examples": [
+      "She has the ability to learn quickly."
+    ],
+    "exampleTranslations": [
+      "她有快速学习的能力。"
+    ]
+  },
+  {
+    "word": "abroad",
+    "meaning": "在国外",
+    "meanings": [
+      "在国外",
+      "到海外",
+      "广为流传地"
+    ],
+    "pos": "adv.",
+    "phonetic": "/əˈbrɔːd/",
+    "example": "He studied abroad for two years.",
+    "examples": [
+      "He studied abroad for two years."
+    ],
+    "exampleTranslations": [
+      "他在国外学习了两年。"
+    ]
+  },
+  {
+    "word": "absolute",
+    "meaning": "绝对的",
+    "meanings": [
+      "绝对的",
+      "完全的",
+      "专制的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/ˈæbsəluːt/",
+    "example": "I have absolute confidence in her.",
+    "examples": [
+      "I have absolute confidence in her."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “absolute” 表示「绝对的」的用法。"
+    ]
+  },
+  {
+    "word": "absorb",
+    "meaning": "吸收",
+    "meanings": [
+      "吸收",
+      "吸引",
+      "使全神贯注"
+    ],
+    "pos": "v.",
+    "phonetic": "/əbˈzɔːrb/",
+    "example": "Plants absorb water from the soil.",
+    "examples": [
+      "Plants absorb water from the soil."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “absorb” 表示「吸收」的用法。"
+    ]
+  },
+  {
+    "word": "abstract",
+    "meaning": "抽象的",
+    "meanings": [
+      "抽象的",
+      "摘要",
+      "提取"
+    ],
+    "pos": "adj.",
+    "phonetic": "/ˈæbstrækt/",
+    "example": "Beauty is an abstract concept.",
+    "examples": [
+      "Beauty is an abstract concept."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “abstract” 表示「抽象的」的用法。"
+    ]
+  },
+  {
+    "word": "abundant",
+    "meaning": "丰富的",
+    "meanings": [
+      "丰富的",
+      "充裕的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/əˈbʌndənt/",
+    "example": "The region has abundant natural resources.",
+    "examples": [
+      "The region has abundant natural resources."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “abundant” 表示「丰富的」的用法。"
+    ]
+  },
+  {
+    "word": "abuse",
+    "meaning": "滥用",
+    "meanings": [
+      "滥用",
+      "虐待",
+      "辱骂"
+    ],
+    "pos": "n./v.",
+    "phonetic": "/əˈbjuːs/",
+    "example": "The report exposed the abuse of power.",
+    "examples": [
+      "The report exposed the abuse of power."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “abuse” 表示「滥用」的用法。"
+    ]
+  },
+  {
+    "word": "academic",
+    "meaning": "学术的",
+    "meanings": [
+      "学术的",
+      "学院的",
+      "纯理论的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/ˌækəˈdemɪk/",
+    "example": "She pursued an academic career.",
+    "examples": [
+      "She pursued an academic career."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “academic” 表示「学术的」的用法。"
+    ]
+  },
+  {
+    "word": "accelerate",
+    "meaning": "加速",
+    "meanings": [
+      "加速",
+      "促进"
+    ],
+    "pos": "v.",
+    "phonetic": "/əkˈseləreɪt/",
+    "example": "The car began to accelerate.",
+    "examples": [
+      "The car began to accelerate."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accelerate” 表示「加速」的用法。"
+    ]
+  },
+  {
+    "word": "accent",
+    "meaning": "口音",
+    "meanings": [
+      "口音",
+      "重音",
+      "强调"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈæksent/",
+    "example": "He speaks English with a French accent.",
+    "examples": [
+      "He speaks English with a French accent."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accent” 表示「口音」的用法。"
+    ]
+  },
+  {
+    "word": "accept",
+    "meaning": "接受",
+    "meanings": [
+      "接受",
+      "认可",
+      "承担"
+    ],
+    "pos": "v.",
+    "phonetic": "/əkˈsept/",
+    "example": "Please accept my apology.",
+    "examples": [
+      "Please accept my apology."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accept” 表示「接受」的用法。"
+    ]
+  },
+  {
+    "word": "access",
+    "meaning": "通道",
+    "meanings": [
+      "通道",
+      "使用权",
+      "接近"
+    ],
+    "pos": "n./v.",
+    "phonetic": "/ˈækses/",
+    "example": "Students have free access to the library.",
+    "examples": [
+      "Students have free access to the library."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “access” 表示「通道」的用法。"
+    ]
+  },
+  {
+    "word": "accident",
+    "meaning": "事故",
+    "meanings": [
+      "事故",
+      "意外",
+      "碰巧"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈæksɪdənt/",
+    "example": "He was injured in a traffic accident.",
+    "examples": [
+      "He was injured in a traffic accident."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accident” 表示「事故」的用法。"
+    ]
+  },
+  {
+    "word": "accommodate",
+    "meaning": "容纳",
+    "meanings": [
+      "容纳",
+      "为…提供住宿",
+      "适应"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈkɒmədeɪt/",
+    "example": "The hotel can accommodate 200 guests.",
+    "examples": [
+      "The hotel can accommodate 200 guests."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accommodate” 表示「容纳」的用法。"
+    ]
+  },
+  {
+    "word": "accompany",
+    "meaning": "陪伴",
+    "meanings": [
+      "陪伴",
+      "伴随",
+      "伴奏"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈkʌmpəni/",
+    "example": "May I accompany you to the station?",
+    "examples": [
+      "May I accompany you to the station?"
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accompany” 表示「陪伴」的用法。"
+    ]
+  },
+  {
+    "word": "accomplish",
+    "meaning": "完成",
+    "meanings": [
+      "完成",
+      "实现"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈkʌmplɪʃ/",
+    "example": "We accomplished the task ahead of time.",
+    "examples": [
+      "We accomplished the task ahead of time."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accomplish” 表示「完成」的用法。"
+    ]
+  },
+  {
+    "word": "account",
+    "meaning": "账户",
+    "meanings": [
+      "账户",
+      "叙述",
+      "解释"
+    ],
+    "pos": "n.",
+    "phonetic": "/əˈkaʊnt/",
+    "example": "She opened a bank account yesterday.",
+    "examples": [
+      "She opened a bank account yesterday."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “account” 表示「账户」的用法。"
+    ]
+  },
+  {
+    "word": "accumulate",
+    "meaning": "积累",
+    "meanings": [
+      "积累",
+      "积聚"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈkjuːmjəleɪt/",
+    "example": "Dust can accumulate if you never clean.",
+    "examples": [
+      "Dust can accumulate if you never clean."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accumulate” 表示「积累」的用法。"
+    ]
+  },
+  {
+    "word": "accurate",
+    "meaning": "准确的",
+    "meanings": [
+      "准确的",
+      "精确的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/ˈækjərət/",
+    "example": "The report gives an accurate description.",
+    "examples": [
+      "The report gives an accurate description."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accurate” 表示「准确的」的用法。"
+    ]
+  },
+  {
+    "word": "accuse",
+    "meaning": "指责",
+    "meanings": [
+      "指责",
+      "控告"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈkjuːz/",
+    "example": "They accuse him of lying.",
+    "examples": [
+      "They accuse him of lying."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “accuse” 表示「指责」的用法。"
+    ]
+  },
+  {
+    "word": "achieve",
+    "meaning": "达到",
+    "meanings": [
+      "达到",
+      "完成",
+      "取得"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈtʃiːv/",
+    "example": "She worked hard to achieve her goals.",
+    "examples": [
+      "She worked hard to achieve her goals."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “achieve” 表示「达到」的用法。"
+    ]
+  },
+  {
+    "word": "acid",
+    "meaning": "酸",
+    "meanings": [
+      "酸",
+      "尖刻的"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈæsɪd/",
+    "example": "Lemon juice contains citric acid.",
+    "examples": [
+      "Lemon juice contains citric acid."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “acid” 表示「酸」的用法。"
+    ]
+  },
+  {
+    "word": "acknowledge",
+    "meaning": "承认",
+    "meanings": [
+      "承认",
+      "告知收到",
+      "致谢"
+    ],
+    "pos": "v.",
+    "phonetic": "/əkˈnɒlɪdʒ/",
+    "example": "He refused to acknowledge his mistake.",
+    "examples": [
+      "He refused to acknowledge his mistake."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “acknowledge” 表示「承认」的用法。"
+    ]
+  },
+  {
+    "word": "acquire",
+    "meaning": "获得",
+    "meanings": [
+      "获得",
+      "习得",
+      "购得"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈkwaɪər/",
+    "example": "She acquired a taste for classical music.",
+    "examples": [
+      "She acquired a taste for classical music."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “acquire” 表示「获得」的用法。"
+    ]
+  },
+  {
+    "word": "across",
+    "meaning": "穿过",
+    "meanings": [
+      "穿过",
+      "在对面",
+      "遍及"
+    ],
+    "pos": "prep.",
+    "phonetic": "/əˈkrɒs/",
+    "example": "There is a bridge across the river.",
+    "examples": [
+      "There is a bridge across the river."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “across” 表示「穿过」的用法。"
+    ]
+  },
+  {
+    "word": "act",
+    "meaning": "行动",
+    "meanings": [
+      "行动",
+      "表演",
+      "法令"
+    ],
+    "pos": "v./n.",
+    "phonetic": "/ækt/",
+    "example": "Think carefully before you act.",
+    "examples": [
+      "Think carefully before you act."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “act” 表示「行动」的用法。"
+    ]
+  },
+  {
+    "word": "adapt",
+    "meaning": "适应",
+    "meanings": [
+      "适应",
+      "改编"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈdæpt/",
+    "example": "It takes time to adapt to a new culture.",
+    "examples": [
+      "It takes time to adapt to a new culture."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “adapt” 表示「适应」的用法。"
+    ]
+  },
+  {
+    "word": "addict",
+    "meaning": "上瘾者",
+    "meanings": [
+      "上瘾者",
+      "对…入迷的人"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈædɪkt/",
+    "example": "He is a coffee addict.",
+    "examples": [
+      "He is a coffee addict."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “addict” 表示「上瘾者」的用法。"
+    ]
+  },
+  {
+    "word": "addition",
+    "meaning": "增加",
+    "meanings": [
+      "增加",
+      "加法",
+      "附加物"
+    ],
+    "pos": "n.",
+    "phonetic": "/əˈdɪʃn/",
+    "example": "In addition, we need more time.",
+    "examples": [
+      "In addition, we need more time."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “addition” 表示「增加」的用法。"
+    ]
+  },
+  {
+    "word": "adequate",
+    "meaning": "足够的",
+    "meanings": [
+      "足够的",
+      "适当的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/ˈædɪkwət/",
+    "example": "The food supply is adequate for winter.",
+    "examples": [
+      "The food supply is adequate for winter."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “adequate” 表示「足够的」的用法。"
+    ]
+  },
+  {
+    "word": "adjust",
+    "meaning": "调整",
+    "meanings": [
+      "调整",
+      "适应"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈdʒʌst/",
+    "example": "Please adjust the volume.",
+    "examples": [
+      "Please adjust the volume."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “adjust” 表示「调整」的用法。"
+    ]
+  },
+  {
+    "word": "admire",
+    "meaning": "钦佩",
+    "meanings": [
+      "钦佩",
+      "欣赏"
+    ],
+    "pos": "v.",
+    "phonetic": "/ədˈmaɪər/",
+    "example": "I admire her courage.",
+    "examples": [
+      "I admire her courage."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “admire” 表示「钦佩」的用法。"
+    ]
+  },
+  {
+    "word": "admit",
+    "meaning": "承认",
+    "meanings": [
+      "承认",
+      "允许进入"
+    ],
+    "pos": "v.",
+    "phonetic": "/ədˈmɪt/",
+    "example": "He admitted that he was wrong.",
+    "examples": [
+      "He admitted that he was wrong."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “admit” 表示「承认」的用法。"
+    ]
+  },
+  {
+    "word": "adopt",
+    "meaning": "采纳",
+    "meanings": [
+      "采纳",
+      "收养"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈdɒpt/",
+    "example": "They decided to adopt a child.",
+    "examples": [
+      "They decided to adopt a child."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “adopt” 表示「采纳」的用法。"
+    ]
+  },
+  {
+    "word": "adult",
+    "meaning": "成年人",
+    "meanings": [
+      "成年人",
+      "成年的"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈædʌlt/",
+    "example": "This movie is for adults only.",
+    "examples": [
+      "This movie is for adults only."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “adult” 表示「成年人」的用法。"
+    ]
+  },
+  {
+    "word": "advance",
+    "meaning": "前进",
+    "meanings": [
+      "前进",
+      "提前",
+      "进展"
+    ],
+    "pos": "v./n.",
+    "phonetic": "/ədˈvɑːns/",
+    "example": "Technology continues to advance.",
+    "examples": [
+      "Technology continues to advance."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “advance” 表示「前进」的用法。"
+    ]
+  },
+  {
+    "word": "advantage",
+    "meaning": "优势",
+    "meanings": [
+      "优势",
+      "好处"
+    ],
+    "pos": "n.",
+    "phonetic": "/ədˈvɑːntɪdʒ/",
+    "example": "Her height gives her an advantage.",
+    "examples": [
+      "Her height gives her an advantage."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “advantage” 表示「优势」的用法。"
+    ]
+  },
+  {
+    "word": "adventure",
+    "meaning": "冒险",
+    "meanings": [
+      "冒险",
+      "奇遇"
+    ],
+    "pos": "n.",
+    "phonetic": "/ədˈventʃər/",
+    "example": "They set out on an adventure.",
+    "examples": [
+      "They set out on an adventure."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “adventure” 表示「冒险」的用法。"
+    ]
+  },
+  {
+    "word": "advertise",
+    "meaning": "做广告",
+    "meanings": [
+      "做广告",
+      "宣传"
+    ],
+    "pos": "v.",
+    "phonetic": "/ˈædvətaɪz/",
+    "example": "They advertise the product on TV.",
+    "examples": [
+      "They advertise the product on TV."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “advertise” 表示「做广告」的用法。"
+    ]
+  },
+  {
+    "word": "advice",
+    "meaning": "建议",
+    "meanings": [
+      "建议",
+      "忠告"
+    ],
+    "pos": "n.",
+    "phonetic": "/ədˈvaɪs/",
+    "example": "Can you give me some advice?",
+    "examples": [
+      "Can you give me some advice?"
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “advice” 表示「建议」的用法。"
+    ]
+  },
+  {
+    "word": "affair",
+    "meaning": "事务",
+    "meanings": [
+      "事务",
+      "风流韵事",
+      "事件"
+    ],
+    "pos": "n.",
+    "phonetic": "/əˈfeər/",
+    "example": "The scandal became a public affair.",
+    "examples": [
+      "The scandal became a public affair."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “affair” 表示「事务」的用法。"
+    ]
+  },
+  {
+    "word": "affect",
+    "meaning": "影响",
+    "meanings": [
+      "影响",
+      "感动"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈfekt/",
+    "example": "The weather can affect your mood.",
+    "examples": [
+      "The weather can affect your mood."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “affect” 表示「影响」的用法。"
+    ]
+  },
+  {
+    "word": "afford",
+    "meaning": "负担得起",
+    "meanings": [
+      "负担得起",
+      "提供"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈfɔːrd/",
+    "example": "I cannot afford a new car.",
+    "examples": [
+      "I cannot afford a new car."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “afford” 表示「负担得起」的用法。"
+    ]
+  },
+  {
+    "word": "afraid",
+    "meaning": "害怕的",
+    "meanings": [
+      "害怕的",
+      "担心的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/əˈfreɪd/",
+    "example": "She is afraid of spiders.",
+    "examples": [
+      "She is afraid of spiders."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “afraid” 表示「害怕的」的用法。"
+    ]
+  },
+  {
+    "word": "agency",
+    "meaning": "代理机构",
+    "meanings": [
+      "代理机构",
+      "作用",
+      "中介"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈeɪdʒənsi/",
+    "example": "He works for a travel agency.",
+    "examples": [
+      "He works for a travel agency."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “agency” 表示「代理机构」的用法。"
+    ]
+  },
+  {
+    "word": "agenda",
+    "meaning": "议程",
+    "meanings": [
+      "议程",
+      "日程"
+    ],
+    "pos": "n.",
+    "phonetic": "/əˈdʒendə/",
+    "example": "What is on the agenda today?",
+    "examples": [
+      "What is on the agenda today?"
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “agenda” 表示「议程」的用法。"
+    ]
+  },
+  {
+    "word": "agent",
+    "meaning": "代理人",
+    "meanings": [
+      "代理人",
+      "特工",
+      "作用因素"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈeɪdʒənt/",
+    "example": "She is a real estate agent.",
+    "examples": [
+      "She is a real estate agent."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “agent” 表示「代理人」的用法。"
+    ]
+  },
+  {
+    "word": "aggressive",
+    "meaning": "侵略的",
+    "meanings": [
+      "侵略的",
+      "有进取心的",
+      "好斗的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/əˈɡresɪv/",
+    "example": "The dog became aggressive.",
+    "examples": [
+      "The dog became aggressive."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “aggressive” 表示「侵略的」的用法。"
+    ]
+  },
+  {
+    "word": "agree",
+    "meaning": "同意",
+    "meanings": [
+      "同意",
+      "一致",
+      "商定"
+    ],
+    "pos": "v.",
+    "phonetic": "/əˈɡriː/",
+    "example": "I agree with your opinion.",
+    "examples": [
+      "I agree with your opinion."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “agree” 表示「同意」的用法。"
+    ]
+  },
+  {
+    "word": "agriculture",
+    "meaning": "农业",
+    "meanings": [
+      "农业",
+      "农学"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈæɡrɪkʌltʃər/",
+    "example": "Agriculture is vital to the economy.",
+    "examples": [
+      "Agriculture is vital to the economy."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “agriculture” 表示「农业」的用法。"
+    ]
+  },
+  {
+    "word": "ahead",
+    "meaning": "在前面",
+    "meanings": [
+      "在前面",
+      "提前",
+      "领先"
+    ],
+    "pos": "adv.",
+    "phonetic": "/əˈhed/",
+    "example": "There is a long journey ahead.",
+    "examples": [
+      "There is a long journey ahead."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “ahead” 表示「在前面」的用法。"
+    ]
+  },
+  {
+    "word": "aid",
+    "meaning": "援助",
+    "meanings": [
+      "援助",
+      "助手",
+      "帮助"
+    ],
+    "pos": "n./v.",
+    "phonetic": "/eɪd/",
+    "example": "They received financial aid.",
+    "examples": [
+      "They received financial aid."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “aid” 表示「援助」的用法。"
+    ]
+  },
+  {
+    "word": "aim",
+    "meaning": "目标",
+    "meanings": [
+      "目标",
+      "瞄准",
+      "旨在"
+    ],
+    "pos": "n./v.",
+    "phonetic": "/eɪm/",
+    "example": "His aim is to become a doctor.",
+    "examples": [
+      "His aim is to become a doctor."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “aim” 表示「目标」的用法。"
+    ]
+  },
+  {
+    "word": "alarm",
+    "meaning": "警报",
+    "meanings": [
+      "警报",
+      "惊恐",
+      "闹钟"
+    ],
+    "pos": "n.",
+    "phonetic": "/əˈlɑːrm/",
+    "example": "The alarm went off at six.",
+    "examples": [
+      "The alarm went off at six."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “alarm” 表示「警报」的用法。"
+    ]
+  },
+  {
+    "word": "album",
+    "meaning": "相册",
+    "meanings": [
+      "相册",
+      "专辑"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈælbəm/",
+    "example": "She released a new album.",
+    "examples": [
+      "She released a new album."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “album” 表示「相册」的用法。"
+    ]
+  },
+  {
+    "word": "alcohol",
+    "meaning": "酒精",
+    "meanings": [
+      "酒精",
+      "酒"
+    ],
+    "pos": "n.",
+    "phonetic": "/ˈælkəhɒl/",
+    "example": "Do not drink alcohol and drive.",
+    "examples": [
+      "Do not drink alcohol and drive."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “alcohol” 表示「酒精」的用法。"
+    ]
+  },
+  {
+    "word": "alert",
+    "meaning": "警觉的",
+    "meanings": [
+      "警觉的",
+      "警报",
+      "提醒"
+    ],
+    "pos": "adj.",
+    "phonetic": "/əˈlɜːrt/",
+    "example": "Stay alert while crossing the street.",
+    "examples": [
+      "Stay alert while crossing the street."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “alert” 表示「警觉的」的用法。"
+    ]
+  },
+  {
+    "word": "alike",
+    "meaning": "相像的",
+    "meanings": [
+      "相像的",
+      "同样地"
+    ],
+    "pos": "adj.",
+    "phonetic": "/əˈlaɪk/",
+    "example": "The twins look alike.",
+    "examples": [
+      "The twins look alike."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “alike” 表示「相像的」的用法。"
+    ]
+  },
+  {
+    "word": "alive",
+    "meaning": "活着的",
+    "meanings": [
+      "活着的",
+      "有活力的"
+    ],
+    "pos": "adj.",
+    "phonetic": "/əˈlaɪv/",
+    "example": "The tradition is still alive.",
+    "examples": [
+      "The tradition is still alive."
+    ],
+    "exampleTranslations": [
+      "这句话展示了 “alive” 表示「活着的」的用法。"
+    ]
+  }
+]

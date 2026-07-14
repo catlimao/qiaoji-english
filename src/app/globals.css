@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.story-panel {
+  background:
+    linear-gradient(180deg, rgba(250, 246, 240, 1) 0%, rgba(247, 241, 232, 1) 100%);
+}
+
+.story-paragraph {
+  text-indent: 2em;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.story-chapter + .story-chapter {
+  padding-top: 2rem;
+  border-top: 1px dashed rgba(64, 53, 42, 0.15);
+}
+
+.word-highlight {
+  cursor: pointer;
+  border-radius: 0.2em;
+  padding: 0 0.12em;
+  text-indent: 0;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fade-up 0.2s ease-out;
+}
