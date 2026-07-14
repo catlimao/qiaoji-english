@@ -6,19 +6,19 @@ import kaoyan from "@/data/kaoyan-sample.json";
 export const BUILTIN_BOOKS: WordBook[] = [
   {
     id: "builtin-cet4",
-    name: "四级词汇（样例）",
+    name: "四级词汇",
     source: "builtin",
     words: cet4 as WordEntry[],
   },
   {
     id: "builtin-cet6",
-    name: "六级词汇（样例）",
+    name: "六级词汇",
     source: "builtin",
     words: cet6 as WordEntry[],
   },
   {
     id: "builtin-kaoyan",
-    name: "考研词汇（样例）",
+    name: "考研词汇",
     source: "builtin",
     words: kaoyan as WordEntry[],
   },

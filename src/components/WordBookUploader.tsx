@@ -1,25 +1,59 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { WordBook } from "@/lib/types";
-import { parseUploadedWordBook } from "@/lib/parse-wordbook";
+import {
+  enrichEmptyMeanings,
+  parseUploadedWordBook,
+} from "@/lib/parse-wordbook";
 import { addUploadedBook } from "@/lib/storage";
 
 type Props = {
   onUploaded: (book: WordBook) => void;
 };
 
+type UploadResult = {
+  ok: boolean;
+  title: string;
+  detail: string;
+};
+
 export function WordBookUploader({ onUploaded }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
+
+  useEffect(() => {
+    if (!result) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setResult(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [result]);
 
   const handleFile = async (file: File) => {
-    setError(null);
+    setResult(null);
     setBusy(true);
+    setProgress("正在解析文件…");
     try {
-      const words = await parseUploadedWordBook(file);
+      let words = await parseUploadedWordBook(file);
+      const needZh = words.some(
+        (w) =>
+          !w.meaning ||
+          w.meaning === w.word ||
+          !/[\u4e00-\u9fff]/.test(w.meaning)
+      );
+      if (needZh) {
+        setProgress("正在查询中文释义…");
+        words = await enrichEmptyMeanings(words, (done, total) => {
+          setProgress(`正在查询中文释义 ${done}/${total}`);
+        });
+      }
       const bookName =
         name.trim() ||
         file.name.replace(/\.(json|csv|txt|docx|doc)$/i, "") ||
@@ -34,10 +68,21 @@ export function WordBookUploader({ onUploaded }: Props) {
       onUploaded(book);
       setName("");
       if (inputRef.current) inputRef.current.value = "";
+      setResult({
+        ok: true,
+        title: "上传成功",
+        detail: `「${bookName}」已导入，共 ${words.length} 个单词。`,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "上传失败");
+      const msg = err instanceof Error ? err.message : "上传失败";
+      setResult({
+        ok: false,
+        title: "上传失败",
+        detail: msg,
+      });
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -47,7 +92,7 @@ export function WordBookUploader({ onUploaded }: Props) {
         上传词书
       </h2>
       <p className="mt-1 font-body text-sm text-ink-500">
-        支持 TXT / Word(.docx) / CSV / JSON。TXT 或 Word 建议每行：
+        支持 TXT / Word(.docx) / CSV / JSON。可每行一个英文单词（会自动查中文），也可
         <code className="mx-1 rounded bg-ink-100 px-1">abandon 放弃</code>
       </p>
       <label className="mt-4 block">
@@ -69,17 +114,62 @@ export function WordBookUploader({ onUploaded }: Props) {
         className="mt-4 block w-full font-body text-sm text-ink-700 file:mr-3 file:rounded-lg file:border-0 file:bg-ink-900 file:px-3 file:py-2 file:text-sm file:text-paper file:hover:bg-ink-800"
         disabled={busy}
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void handleFile(file);
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
         }}
       />
-      {error && (
-        <p className="mt-3 font-body text-sm text-red-700" role="alert">
-          {error}
-        </p>
+      {busy && progress && (
+        <p className="mt-3 font-body text-sm text-ink-500">{progress}</p>
       )}
-      {busy && (
-        <p className="mt-3 font-body text-sm text-ink-500">正在解析…</p>
+
+      {result && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4"
+          role="presentation"
+          onClick={() => setResult(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upload-result-title"
+            className="w-full max-w-sm rounded-2xl border border-ink-200 bg-paper p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${
+                  result.ok ? "bg-emerald-600" : "bg-red-600"
+                }`}
+                aria-hidden
+              >
+                {result.ok ? "✓" : "!"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3
+                  id="upload-result-title"
+                  className="font-display text-lg font-semibold text-ink-900"
+                >
+                  {result.title}
+                </h3>
+                <p className="mt-2 font-body text-sm leading-relaxed text-ink-600">
+                  {result.detail}
+                </p>
+              </div>
+            </div>
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={() => setResult(null)}
+              className={`mt-5 w-full rounded-xl px-4 py-2.5 font-body text-sm font-medium text-white transition ${
+                result.ok
+                  ? "bg-ink-900 hover:bg-ink-800"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
+            >
+              知道了
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

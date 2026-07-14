@@ -25,8 +25,32 @@ function makeWordSegment(
   };
 }
 
+/**
+ * 把模型常见错误写法「有利的（advantageous）」转成 [[advantageous|有利的]]
+ * 读者端只高亮英文。
+ */
+export function normalizeChineseParenEnglish(
+  raw: string,
+  wordList: WordEntry[] = []
+): string {
+  const known = new Set(wordList.map((w) => w.word.toLowerCase()));
+  return raw.replace(
+    /([\u4e00-\u9fff]{1,16}?)\s*[（(]\s*([A-Za-z][A-Za-z'-]*)\s*[）)]/g,
+    (full, zh: string, en: string) => {
+      const lower = en.toLowerCase();
+      if (known.has(lower) || /^[a-z][a-z'-]*$/.test(en)) {
+        const canon =
+          wordList.find((w) => w.word.toLowerCase() === lower)?.word || en;
+        return `[[${canon}|${zh}]]`;
+      }
+      return full;
+    }
+  );
+}
+
 export function stripInlineGlosses(text: string): string {
   return text
+    .replace(/([\u4e00-\u9fff]{1,16}?)\s*[（(]\s*[A-Za-z][A-Za-z'-]*\s*[）)]/g, "")
     .replace(/([A-Za-z][A-Za-z'-]*)（[^）]+）/g, "$1")
     .replace(/([A-Za-z][A-Za-z'-]*)\([^)]+\)/g, "$1")
     .replace(/\[\[([^\]|]+)\|[^\]]+\]\]/g, "$1");
@@ -37,6 +61,7 @@ export function sanitizeSegments(segments: StorySegment[]): StorySegment[] {
     if (seg.type === "word") {
       const pure = (seg.word?.word || seg.content)
         .replace(/（.*?）|\(.*?\)/g, "")
+        .replace(/[\u4e00-\u9fff]/g, "")
         .trim();
       return { ...seg, content: pure || seg.content };
     }
@@ -101,7 +126,7 @@ export function highlightBareTargetWords(
   return mergeAdjacentText(out);
 }
 
-/** 仍缺失的目标词：在文末补一段，保证学习词出现 */
+/** 仍缺失的目标词：文末轻触一句带入，避免打断主线太多 */
 export function ensureTargetWordsPresent(
   segments: StorySegment[],
   wordList: WordEntry[]
@@ -115,7 +140,10 @@ export function ensureTargetWordsPresent(
   if (missing.length === 0) return segments;
 
   const extra: StorySegment[] = [
-    { type: "text", content: "\n\n（尾声）她在心里默念这些词：" },
+    {
+      type: "text",
+      content: "\n\n事后她回想这场经历，又咀嚼了几个词：",
+    },
   ];
   missing.forEach((w, i) => {
     if (i > 0) extra.push({ type: "text", content: "、" });
@@ -129,6 +157,7 @@ export function parseStory(
   raw: string,
   wordList: WordEntry[] = []
 ): StorySegment[] {
+  const normalized = normalizeChineseParenEnglish(raw, wordList);
   const lookup = new Map(
     wordList.map((w) => [w.word.toLowerCase(), w] as const)
   );
@@ -137,11 +166,13 @@ export function parseStory(
   let match: RegExpExecArray | null;
   const re = new RegExp(TOKEN_RE.source, "g");
 
-  while ((match = re.exec(raw)) !== null) {
+  while ((match = re.exec(normalized)) !== null) {
     if (match.index > lastIndex) {
       segments.push({
         type: "text",
-        content: stripInlineGlosses(raw.slice(lastIndex, match.index)),
+        content: stripInlineGlosses(
+          normalized.slice(lastIndex, match.index)
+        ),
       });
     }
 
@@ -161,17 +192,17 @@ export function parseStory(
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < raw.length) {
+  if (lastIndex < normalized.length) {
     segments.push({
       type: "text",
-      content: stripInlineGlosses(raw.slice(lastIndex)),
+      content: stripInlineGlosses(normalized.slice(lastIndex)),
     });
   }
 
   let result = sanitizeSegments(
     segments.length > 0
       ? segments
-      : [{ type: "text", content: stripInlineGlosses(raw) }]
+      : [{ type: "text", content: stripInlineGlosses(normalized) }]
   );
   result = mergeAdjacentText(result);
   result = highlightBareTargetWords(result, wordList);
@@ -190,42 +221,41 @@ export function buildPrompt(params: {
 }): { system: string; user: string } {
   const lengthHint =
     params.length === "short"
-      ? "短篇：正文不少于 150 字，不超过 220 字"
+      ? "短篇：正文 160–220 汉字，必须写完结局"
       : params.length === "long"
-        ? "长篇：正文不少于 1000 字，尽量写到 1100–1200 字，必须写完完整结局，禁止中途停笔"
-        : "中篇：正文不少于 500 字，尽量写到 600–800 字，必须写完完整结局，禁止中途停笔";
+        ? "长篇：正文 1000–1200 汉字，必须写完完整结局，禁止中途停笔"
+        : "中篇：正文 550–800 汉字，必须写完完整结局，禁止中途停笔";
 
-  const wordLines = params.words
+  // 打乱列表顺序展示，避免模型按表序机械堆砌
+  const shuffled = [...params.words].sort(() => Math.random() - 0.5);
+  const wordLines = shuffled
     .map((w) => `- ${w.word}｜${getPrimaryMeaning(w)}`)
     .join("\n");
 
   const isSerial = params.mode === "serial";
 
   const structureRules = isSerial
-    ? `10. 这是连载第 ${params.chapter ?? 1} 章。剧情须与前文连贯，承接人物与冲突，可以留下悬念，但本章自身要有起承转合。
+    ? `10. 这是连载第 ${params.chapter ?? 1} 章。剧情须与前文连贯，承接人物与冲突，可以留下悬念，但本章自身要有完整的小高潮与阶段收束。
 11. 不要重复复述上一章全文；自然衔接即可。
 12. 不要输出“第X章”标题，只输出本章正文。`
-    : `10. 这是独立成篇的完整故事：有开端、发展、高潮与收束，读完应感到故事讲完了。
-11. 禁止在高潮处突然结束；必须把结局写完。
+    : `10. 这是独立成篇的完整故事：开端→发展→转折→收束，因果清楚，读完应觉得故事讲完了。
+11. 禁止在高潮处突然结束；必须写出明确结局。
 12. 不要输出标题，只输出正文。`;
 
-  const system = `你是一位擅长将英语单词自然融入中文网文的职业编剧。请创作情节合理、人物动机清晰、可读性强、篇幅达标的小说正文，并把指定英语单词自然嵌进叙事。
+  const system = `你是一位擅长将英语单词自然融入中文网文的职业编剧。故事必须有清晰人物动机与情节逻辑；英语学习词只作为叙事中的自然零件，不是填表。
 
 硬性规则：
-1. 全文以中文为主，学习目标单词必须保留为英文拼写（不可译成中文）。
-2. 每个给定单词必须至少出现一次，且尽量自然贴合情节，禁止生硬罗列。
-3. 嵌入格式必须严格使用双中括号标记：[[英文单词|中文释义]]
-   正确示例：指尖[[slip|滑落]]一份协议
-   错误示例：slip（滑落）、把单词译成中文、完全不写英文词。
-4. 中文释义必须与词表给出的释义一致；读者端只会高亮显示英文单词本身。
-5. 不要编造词表之外的英文学习目标词；专有名词可用拼音或中文。
-6. 正文分段清晰，每段之间用空行分隔。
-7. 不要输出说明、列表或 Markdown（除必须的 [[word|释义]] 标记外）。
-8. 情节要合理：人物言行符合身份，因果关系清楚。
-9. 优先「一个小冲突 + 推进/解决」的叙事节奏。
+1. 全文以中文为主；学习目标词必须保留英文拼写，且正文里只能出现英文本身（不要在英文旁再写中文）。
+2. 每个给定单词至少出现一次，按情节需要穿插即可，【不必按词表顺序】，也禁止机械逐词堆砌。
+3. 嵌入格式只能用：[[英文单词|中文释义]]
+   正确：她看出这是[[advantageous|有利的]]局面
+   错误：有利的（advantageous）、advantageous（有利的）、有利的advantageous
+4. 绝对禁止「中文释义（英文）」或「英文（中文释义）」写法。
+5. 中文释义必须与词表一致；专有名词可用拼音或中文；不要额外编造词表外学习词。
+6. 分段清晰，段间空行；不要 Markdown、不要解释、不要前后缀。
+7. 情节合理：人物言行符合身份，冲突有因，结果有果，避免无意义口号与空洞抒情。
 ${structureRules}
-13. 不要解释规则，不要在正文外加任何前后缀。
-14. 输出结束前请自检：每个目标词都已用 [[word|释义]] 出现，且故事已完整收束。`;
+13. 写完前自检：每个目标词都已用 [[word|释义]] 出现；句号收束完整；字数达标。`;
 
   let user = `小说类型/风格：${params.style}
 篇幅要求：${lengthHint}
@@ -250,7 +280,7 @@ ${params.previousRaw.trim().slice(-1200)}
   }
 
   user += `
-必须嵌入的单词列表（每个都要用 [[word|释义]] 写出来）：
+必须嵌入的单词（顺序随意，服务情节即可）：
 ${wordLines}
 
 请直接输出完整小说正文。`;

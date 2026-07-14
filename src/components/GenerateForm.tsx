@@ -54,6 +54,10 @@ export function GenerateForm({ onGenerated }: Props) {
     String(DEFAULT_SETTINGS.wordCount)
   );
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<{
+    percent: number;
+    label: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [seriesOptions, setSeriesOptions] = useState<
     ReturnType<typeof getSeriesList>
@@ -149,6 +153,7 @@ export function GenerateForm({ onGenerated }: Props) {
     }
 
     setLoading(true);
+    setProgress({ percent: 5, label: "开始生成…" });
     try {
       const data = await generateStoryClient({
         provider: latestApi.provider || "free",
@@ -165,6 +170,7 @@ export function GenerateForm({ onGenerated }: Props) {
           settings.mode === "serial" && previousRaw
             ? previousRaw
             : undefined,
+        onProgress: (p) => setProgress(p),
       });
       const story: GeneratedStory = {
         id: `story-${Date.now()}`,
@@ -190,6 +196,7 @@ export function GenerateForm({ onGenerated }: Props) {
       setError(err instanceof Error ? err.message : "生成失败");
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   };
 
@@ -413,13 +420,28 @@ export function GenerateForm({ onGenerated }: Props) {
         </p>
       )}
 
+      {loading && progress && (
+        <div className="mt-4 space-y-2" aria-live="polite">
+          <div className="flex items-center justify-between font-body text-xs text-ink-600">
+            <span>{progress.label}</span>
+            <span>{Math.round(progress.percent)}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-ink-100">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-300 ease-out"
+              style={{ width: `${Math.min(100, Math.max(0, progress.percent))}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={loading}
         className="mt-5 w-full rounded-xl bg-ink-900 px-4 py-3 font-body text-sm font-medium text-paper transition hover:bg-ink-800 disabled:cursor-wait disabled:opacity-70 sm:w-auto sm:min-w-[10rem]"
       >
         {loading
-          ? "生成中…"
+          ? progress?.label || "生成中…"
           : settings.mode === "serial"
             ? settings.activeSeriesId
               ? "续写下一章"
