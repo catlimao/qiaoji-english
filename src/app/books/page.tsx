@@ -52,7 +52,7 @@ export default function BooksPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-ink-900">词书管理</h1>
         <p className="mt-2 font-body text-sm text-ink-600">
-          内置四六级 / 考研样例词书，也可上传自己的完整词表。
+          内置四六级 / 考研样例词书，也可上传 TXT、Word（.docx）、CSV 或 JSON。
         </p>
       </div>
 

@@ -8,7 +8,8 @@ import {
   type DictPayload,
 } from "@/lib/lookup-cache";
 import { lookupWordClient } from "@/lib/client-lookup";
-import { getMeanings } from "@/lib/word-utils";
+import { isFakeTranslation } from "@/lib/translate";
+import { getExamples, getMeanings } from "@/lib/word-utils";
 import type { WordEntry } from "@/lib/types";
 
 type Props = {
@@ -68,6 +69,7 @@ export function WordModal({
       context: (contextMeaning || word.meaning || "").trim(),
       book: getMeanings(word).join("；"),
       pos: word.pos || "—",
+      bookExamples: getExamples(word),
     };
 
     lookupWordClient(params)
@@ -257,11 +259,19 @@ function mergeExamples(
   b: { en: string; zh: string }[]
 ) {
   const map = new Map<string, { en: string; zh: string }>();
+  const prefer = (prevZh: string, nextZh: string) => {
+    const pOk = prevZh && !isFakeTranslation(prevZh);
+    const nOk = nextZh && !isFakeTranslation(nextZh);
+    if (!pOk && nOk) return nextZh;
+    if (pOk) return prevZh;
+    return nOk ? nextZh : "";
+  };
   for (const e of [...a, ...b]) {
     if (!e.en) continue;
+    const zh = e.zh && !isFakeTranslation(e.zh) ? e.zh : "";
     const prev = map.get(e.en);
-    if (!prev) map.set(e.en, e);
-    else if (!prev.zh && e.zh) map.set(e.en, e);
+    if (!prev) map.set(e.en, { en: e.en, zh });
+    else map.set(e.en, { en: e.en, zh: prefer(prev.zh, zh) });
   }
   return Array.from(map.values());
 }

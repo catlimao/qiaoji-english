@@ -21,7 +21,9 @@ export function WordBookUploader({ onUploaded }: Props) {
     try {
       const words = await parseUploadedWordBook(file);
       const bookName =
-        name.trim() || file.name.replace(/\.(json|csv|txt)$/i, "") || "自定义词书";
+        name.trim() ||
+        file.name.replace(/\.(json|csv|txt|docx|doc)$/i, "") ||
+        "自定义词书";
       const book: WordBook = {
         id: `upload-${Date.now()}`,
         name: bookName,
@@ -41,9 +43,12 @@ export function WordBookUploader({ onUploaded }: Props) {
 
   return (
     <div className="rounded-2xl border border-ink-200 bg-paper p-5">
-      <h2 className="font-display text-lg font-semibold text-ink-900">上传词书</h2>
+      <h2 className="font-display text-lg font-semibold text-ink-900">
+        上传词书
+      </h2>
       <p className="mt-1 font-body text-sm text-ink-500">
-        支持 JSON（数组或含 words 字段）与 CSV（word,meaning,phonetic…）
+        支持 TXT / Word(.docx) / CSV / JSON。TXT 或 Word 建议每行：
+        <code className="mx-1 rounded bg-ink-100 px-1">abandon 放弃</code>
       </p>
       <label className="mt-4 block">
         <span className="mb-1.5 block font-body text-xs font-medium text-ink-500">
@@ -60,7 +65,7 @@ export function WordBookUploader({ onUploaded }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".json,.csv,.txt,application/json,text/csv,text/plain"
+        accept=".txt,.docx,.csv,.json,text/plain,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="mt-4 block w-full font-body text-sm text-ink-700 file:mr-3 file:rounded-lg file:border-0 file:bg-ink-900 file:px-3 file:py-2 file:text-sm file:text-paper file:hover:bg-ink-800"
         disabled={busy}
         onChange={(e) => {

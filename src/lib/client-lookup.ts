@@ -1,4 +1,4 @@
-import { translateEnToZh } from "@/lib/translate";
+import { isFakeTranslation, translateEnToZh } from "@/lib/translate";
 import type { DictPayload, SenseItem, ExampleItem } from "@/lib/lookup-cache";
 
 function splitBookMeanings(book: string): string[] {
@@ -48,7 +48,7 @@ async function fetchFreeDict(word: string): Promise<{
   }
 }
 
-async function translateWithTimeout(text: string, ms = 2500): Promise<string> {
+async function translateWithTimeout(text: string, ms = 3500): Promise<string> {
   return Promise.race([
     translateEnToZh(text),
     new Promise<string>((resolve) => setTimeout(() => resolve(""), ms)),
@@ -61,8 +61,15 @@ export async function lookupWordClient(params: {
   context?: string;
   book?: string;
   pos?: string;
+  bookExamples?: string[];
 }): Promise<DictPayload> {
-  const { word, context = "", book = "", pos = "—" } = params;
+  const {
+    word,
+    context = "",
+    book = "",
+    pos = "—",
+    bookExamples = [],
+  } = params;
 
   const senses: SenseItem[] = [];
   const seen = new Set<string>();
@@ -83,11 +90,19 @@ export async function lookupWordClient(params: {
     }
   }
 
+  const enList = Array.from(
+    new Set([
+      ...bookExamples.map((e) => e.trim()).filter(Boolean),
+      ...free.examples,
+    ])
+  ).slice(0, 3);
+
   const examples: ExampleItem[] = (
     await Promise.all(
-      free.examples.slice(0, 2).map(async (en) => {
-        const zh = await translateWithTimeout(en, 2500);
-        return zh ? { en, zh } : { en, zh: "" };
+      enList.map(async (en) => {
+        const zh = await translateWithTimeout(en, 3500);
+        const clean = isFakeTranslation(zh) ? "" : zh;
+        return { en, zh: clean };
       })
     )
   ).filter((e) => e.en);

@@ -5,15 +5,43 @@ import type {
   GenerateRequest,
   GenerateResponse,
   ProviderId,
+  StorySegment,
+  WordEntry,
 } from "@/lib/types";
 
 function sanitizeError(message: string): string {
   return message.replace(/sk-[a-zA-Z0-9_-]+/g, "sk-***");
 }
 
-/**
- * 纯前端生成小说（无需 /api/generate）
- */
+function countWords(segments: StorySegment[]): number {
+  return segments.filter((s) => s.type === "word").length;
+}
+
+function chineseLen(raw: string): number {
+  return (raw.match(/[\u4e00-\u9fff]/g) || []).length;
+}
+
+function minCharsForLength(length: GenerateRequest["length"]): number {
+  if (length === "short") return 80;
+  if (length === "long") return 400;
+  return 200;
+}
+
+function needsRetry(
+  raw: string,
+  segments: StorySegment[],
+  words: WordEntry[],
+  length: GenerateRequest["length"]
+): boolean {
+  if (!raw.trim()) return true;
+  if (chineseLen(raw) < minCharsForLength(length)) return true;
+  if (countWords(segments) < Math.max(1, Math.ceil(words.length * 0.4))) {
+    return true;
+  }
+  return false;
+}
+
+/** 纯前端生成小说（无需 /api/generate） */
 export async function generateStoryClient(
   req: GenerateRequest
 ): Promise<GenerateResponse> {
@@ -72,20 +100,49 @@ export async function generateStoryClient(
     previousRaw,
   });
 
-  const result = await callChatCompletion({
-    baseUrl: llmBase,
-    apiKey: llmKey,
-    model: llmModel,
-    system,
-    user,
-  });
+  const callOnce = async (sys: string, usr: string) => {
+    const result = await callChatCompletion({
+      baseUrl: llmBase,
+      apiKey: llmKey,
+      model: llmModel,
+      system: sys,
+      user: usr,
+    });
+    if ("error" in result) {
+      throw new Error(sanitizeError(result.error));
+    }
+    return result.content;
+  };
 
-  if ("error" in result) {
-    throw new Error(sanitizeError(result.error));
+  let raw = await callOnce(system, user);
+  let segments = parseStory(raw, words);
+
+  if (needsRetry(raw, segments, words, length)) {
+    const retryUser = `${user}
+
+【二次生成要求】上一次输出不合格。请重新完整写作：
+1. 每个单词都必须出现为 [[英文|中文]]，例如 [[agenda|议程]]
+2. 禁止只写中文、禁止省略英文拼写
+3. 必须写完完整故事，不要中途停笔
+4. 直接输出正文`;
+    try {
+      const retryRaw = await callOnce(system, retryUser);
+      const retrySeg = parseStory(retryRaw, words);
+      if (
+        !needsRetry(retryRaw, retrySeg, words, length) ||
+        countWords(retrySeg) > countWords(segments)
+      ) {
+        raw = retryRaw;
+        segments = retrySeg;
+      }
+    } catch {
+      /* 保留第一次结果 */
+    }
   }
 
-  return {
-    raw: result.content,
-    segments: parseStory(result.content, words),
-  };
+  if (!raw.trim()) {
+    throw new Error("模型未返回正文");
+  }
+
+  return { raw, segments: parseStory(raw, words) };
 }

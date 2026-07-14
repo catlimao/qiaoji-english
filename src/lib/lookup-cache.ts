@@ -1,4 +1,5 @@
 import type { WordEntry } from "./types";
+import { isFakeTranslation } from "./translate";
 import { getExamples, getMeanings } from "./word-utils";
 
 export type SenseItem = { pos: string; meaning: string };
@@ -9,7 +10,7 @@ export type DictPayload = {
   examples: ExampleItem[];
 };
 
-const CACHE_KEY = "qj_lookup_cache_v1";
+const CACHE_KEY = "qj_lookup_cache_v2";
 const memoryCache = new Map<string, DictPayload>();
 
 function readDiskCache(): Record<string, DictPayload> {
@@ -26,7 +27,6 @@ function readDiskCache(): Record<string, DictPayload> {
 function writeDiskCache(map: Record<string, DictPayload>) {
   if (typeof window === "undefined") return;
   try {
-    // keep latest 200 entries
     const keys = Object.keys(map);
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete map[k];
@@ -80,7 +80,11 @@ export function buildInstantLookup(
   const examplesEn = getExamples(word);
   const zhList = word.exampleTranslations || [];
   const examples: ExampleItem[] = examplesEn
-    .map((en, i) => ({ en, zh: zhList[i] || "" }))
+    .map((en, i) => {
+      const raw = zhList[i] || "";
+      const zh = isFakeTranslation(raw) ? "" : raw;
+      return { en, zh };
+    })
     .filter((e) => e.en);
 
   return {

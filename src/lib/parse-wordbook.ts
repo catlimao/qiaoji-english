@@ -23,7 +23,7 @@ function normalizeEntry(raw: Record<string, unknown>): WordEntry | null {
   const entry: WordEntry = {
     word,
     meaning: meanings[0] || meaning,
-    meanings: meanings.length > 1 ? meanings : meanings,
+    meanings: meanings.length > 0 ? meanings : undefined,
   };
 
   const phonetic = String(raw.phonetic ?? raw.Phonetic ?? "").trim();
@@ -39,9 +39,21 @@ function normalizeEntry(raw: Record<string, unknown>): WordEntry | null {
   if (example) {
     examples = examples ? [...examples, example] : [example];
   }
+
+  let translations: string[] | undefined;
+  if (Array.isArray(raw.exampleTranslations)) {
+    translations = raw.exampleTranslations
+      .map((t) => String(t).trim())
+      .filter(Boolean)
+      .filter((t) => !/这句话展示了|表示「.*」的用法/.test(t));
+  }
+
   if (examples?.length) {
     entry.examples = Array.from(new Set(examples));
     entry.example = entry.examples[0];
+  }
+  if (translations?.length) {
+    entry.exampleTranslations = translations;
   }
   return entry;
 }
@@ -143,21 +155,95 @@ export function parseWordBookCsv(text: string): WordEntry[] {
   return dedupe(words);
 }
 
-export async function parseUploadedWordBook(file: File): Promise<WordEntry[]> {
-  const text = await file.text();
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".json")) return parseWordBookJson(text);
-  if (name.endsWith(".csv") || name.endsWith(".txt")) {
+/**
+ * 纯文本词书，兼容：
+ * abandon 放弃 / abandon	放弃 / abandon|放弃 / abandon - 放弃 / abandon：放弃
+ */
+export function parseWordBookTxt(text: string): WordEntry[] {
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+
+  if (lines.length === 0) throw new Error("TXT 为空");
+
+  if (/^(word|english|单词)\b/i.test(lines[0]) && /,/.test(lines[0])) {
+    return parseWordBookCsv(text);
+  }
+
+  const words: WordEntry[] = [];
+  const lineRe =
+    /^([A-Za-z][A-Za-z'-]*)\s*[,，|｜\t:：\-–—]?\s*(.+)$/;
+
+  for (const line of lines) {
+    if (!/[A-Za-z]/.test(line)) continue;
+
+    const m = line.match(lineRe);
+    if (!m) continue;
+    const word = m[1].trim();
+    const meaning = m[2].trim().replace(/^[,，|｜\-:：–—]\s*/, "");
+    if (word && meaning) words.push({ word, meaning });
+  }
+
+  if (words.length === 0) {
+    throw new Error(
+      "未能从 TXT 解析出单词。每行请写成：english 中文释义（也可用逗号/竖线/冒号分隔）"
+    );
+  }
+  return dedupe(words);
+}
+
+export async function parseWordBookDocx(file: File): Promise<WordEntry[]> {
+  const mammoth = await import("mammoth");
+  const buffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+  const text = (result.value || "").trim();
+  if (!text) throw new Error("Word 文档没有可提取的文字");
+  try {
+    return parseWordBookTxt(text);
+  } catch {
     try {
       return parseWordBookCsv(text);
     } catch {
-      return parseWordBookJson(text);
+      throw new Error(
+        "Word 内容格式无法识别。请每行一个词，如：abandon 放弃"
+      );
     }
   }
-  // Try JSON first, then CSV
+}
+
+export async function parseUploadedWordBook(file: File): Promise<WordEntry[]> {
+  const name = file.name.toLowerCase();
+
+  if (name.endsWith(".docx") || name.endsWith(".doc")) {
+    if (name.endsWith(".doc") && !name.endsWith(".docx")) {
+      throw new Error(
+        "暂不支持旧版 .doc，请另存为 .docx 或导出为 TXT 后再上传"
+      );
+    }
+    return parseWordBookDocx(file);
+  }
+
+  const text = await file.text();
+
+  if (name.endsWith(".json")) return parseWordBookJson(text);
+  if (name.endsWith(".csv")) return parseWordBookCsv(text);
+  if (name.endsWith(".txt")) {
+    try {
+      return parseWordBookTxt(text);
+    } catch {
+      return parseWordBookCsv(text);
+    }
+  }
+
   try {
     return parseWordBookJson(text);
   } catch {
-    return parseWordBookCsv(text);
+    try {
+      return parseWordBookTxt(text);
+    } catch {
+      return parseWordBookCsv(text);
+    }
   }
 }
