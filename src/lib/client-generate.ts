@@ -1,4 +1,4 @@
-import { buildPrompt, parseStory } from "@/lib/parse-story";
+import { buildPrompt, parseStory, stripWordDumpEnding } from "@/lib/parse-story";
 import { callChatCompletion } from "@/lib/free-llm";
 import { BUILTIN_FALLBACK_API } from "@/lib/builtin-api";
 import { resolveBaseUrl } from "@/lib/providers";
@@ -251,6 +251,7 @@ export async function generateStoryClient(
       );
 
       raw = await callOnce(target, system, user);
+      raw = stripWordDumpEnding(raw);
       let segments = parseStory(raw, words);
       used = target;
 
@@ -286,24 +287,29 @@ export async function generateStoryClient(
           (w) => !present.has(w.word.toLowerCase())
         );
         try {
+          const weaveHint =
+            missing.length > 0
+              ? `续写1-2段完整情节，把未出现的词各自嵌进句子（[[英文|中文]]）。严禁罗列单词，严禁「咀嚼/默念几个词」。\n未用词：${missing
+                  .map((w) => `${w.word}|${getPrimaryMeaning(w)}`)
+                  .join("，")}`
+              : `续写并收束结局，不要罗列单词。`;
           const extra = await callOnce(
             target,
-            "只输出续写正文，不要解释。",
-            `续写完下面故事并收束。可用 [[英文|中文]]。\n---\n${raw.slice(-900)}\n---\n未用词：${
-              missing
-                .map((w) => `${w.word}|${getPrimaryMeaning(w)}`)
-                .join("; ") || "无"
-            }`
+            "只输出续写正文。把单词写进句子，禁止单词清单式收尾。",
+            `${weaveHint}\n---\n${raw.slice(-900)}\n---`
           );
           if (extra.trim() && !isUnusableStoryOutput(extra)) {
-            raw = `${raw.trim()}\n\n${extra.trim()}`;
+            raw = stripWordDumpEnding(
+              `${raw.trim()}\n\n${stripWordDumpEnding(extra.trim())}`
+            );
+            segments = parseStory(raw, words);
           }
         } catch {
           /* ignore */
         }
       }
 
-      raw = sanitizeLlmStoryOutput(raw) || raw;
+      raw = stripWordDumpEnding(sanitizeLlmStoryOutput(raw) || raw);
       if (!raw.trim() || (isUnusableStoryOutput(raw) && chineseLen(raw) < 40)) {
         throw new Error("模型返回无效正文");
       }

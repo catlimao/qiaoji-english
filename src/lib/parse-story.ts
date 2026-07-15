@@ -56,6 +56,20 @@ export function stripInlineGlosses(text: string): string {
     .replace(/\[\[([^\]|]+)\|[^\]]+\]\]/g, "$1");
 }
 
+/** 去掉「事后回想 / 咀嚼了几个词：a、b、c。」这类硬塞词表的劣质收尾 */
+export function stripWordDumpEnding(text: string): string {
+  return text
+    .replace(
+      /\n*\s*(?:（?尾声）?)?[^\n]{0,40}(?:回想|回忆|默念|咀嚼)[^\n]{0,40}(?:词|单词)[：:]\s*[A-Za-z][\s\S]*$/,
+      ""
+    )
+    .replace(
+      /\n*\s*事后她回想这场经历，又咀嚼了几个词：[\s\S]*$/,
+      ""
+    )
+    .trimEnd();
+}
+
 export function sanitizeSegments(segments: StorySegment[]): StorySegment[] {
   return segments.map((seg) => {
     if (seg.type === "word") {
@@ -65,7 +79,10 @@ export function sanitizeSegments(segments: StorySegment[]): StorySegment[] {
         .trim();
       return { ...seg, content: pure || seg.content };
     }
-    return { ...seg, content: stripInlineGlosses(seg.content) };
+    return {
+      ...seg,
+      content: stripInlineGlosses(stripWordDumpEnding(seg.content)),
+    };
   });
 }
 
@@ -126,38 +143,20 @@ export function highlightBareTargetWords(
   return mergeAdjacentText(out);
 }
 
-/** 仍缺失的目标词：文末轻触一句带入，避免打断主线太多 */
+/** @deprecated 已停用：禁止在文末罗列单词，不再自动补「咀嚼几个词」 */
 export function ensureTargetWordsPresent(
   segments: StorySegment[],
-  wordList: WordEntry[]
+  _wordList: WordEntry[]
 ): StorySegment[] {
-  const present = new Set(
-    segments
-      .filter((s) => s.type === "word" && s.word)
-      .map((s) => s.word!.word.toLowerCase())
-  );
-  const missing = wordList.filter((w) => !present.has(w.word.toLowerCase()));
-  if (missing.length === 0) return segments;
-
-  const extra: StorySegment[] = [
-    {
-      type: "text",
-      content: "\n\n事后她回想这场经历，又咀嚼了几个词：",
-    },
-  ];
-  missing.forEach((w, i) => {
-    if (i > 0) extra.push({ type: "text", content: "、" });
-    extra.push(makeWordSegment(w.word, getPrimaryMeaning(w), w));
-  });
-  extra.push({ type: "text", content: "。" });
-  return mergeAdjacentText([...segments, ...extra]);
+  return segments;
 }
 
 export function parseStory(
   raw: string,
   wordList: WordEntry[] = []
 ): StorySegment[] {
-  const normalized = normalizeChineseParenEnglish(raw, wordList);
+  const cleanedRaw = stripWordDumpEnding(raw);
+  const normalized = normalizeChineseParenEnglish(cleanedRaw, wordList);
   const lookup = new Map(
     wordList.map((w) => [w.word.toLowerCase(), w] as const)
   );
@@ -206,7 +205,7 @@ export function parseStory(
   );
   result = mergeAdjacentText(result);
   result = highlightBareTargetWords(result, wordList);
-  result = ensureTargetWordsPresent(result, wordList);
+  // 不再文末硬塞缺失词
   return result;
 }
 
@@ -233,21 +232,25 @@ export function buildPrompt(params: {
 
   const isSerial = params.mode === "serial";
 
-  const system = `写中文网文，情节完整合理。学习词嵌入格式唯一合法：[[英文|中文]]。
-禁止：英文推理、JSON、Markdown、「中文（english）」、括号释义、输出规则解释。
-词可按情节穿插，不必按表序。只输出正文。`;
+  const system = `你是中文网文作者。把学习词自然写进情节句子里，像普通叙事，不是背单词。
+
+硬性要求：
+1. 每个词都必须出现在完整句子中，格式只能是 [[英文|中文]]。
+2. 禁止在文末罗列单词；禁止「回想/默念/咀嚼了几个词：a、b、c」这类收尾。
+3. 禁止英文推理、JSON、Markdown、括号释义。
+4. 词序随意，为情节服务。只输出正文。`;
 
   let user = `风格：${params.style}；篇幅：${lengthHint}；${
     isSerial ? `连载第${params.chapter ?? 1}章` : "完整单篇"
   }
-词表：${wordLines}
+词表（逐个嵌进情节，勿罗列）：${wordLines}
 `;
 
   if (isSerial && params.previousRaw?.trim()) {
     user += `前文摘要：\n${params.previousRaw.trim().slice(-600)}\n`;
   }
 
-  user += `直接输出正文。`;
+  user += `直接输出完整正文。`;
 
   return { system, user };
 }
