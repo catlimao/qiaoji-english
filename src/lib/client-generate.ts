@@ -289,13 +289,13 @@ export async function generateStoryClient(
         try {
           const weaveHint =
             missing.length > 0
-              ? `续写1-2段完整情节，把未出现的词各自嵌进句子（[[英文|中文]]）。严禁罗列单词，严禁「咀嚼/默念几个词」。\n未用词：${missing
+              ? `续写1-2段完整情节，把未出现的词各自写进句子（[[英文|中文]]）。严禁文末单词清单。\n未用词：${missing
                   .map((w) => `${w.word}|${getPrimaryMeaning(w)}`)
                   .join("，")}`
               : `续写并收束结局，不要罗列单词。`;
           const extra = await callOnce(
             target,
-            "只输出续写正文。把单词写进句子，禁止单词清单式收尾。",
+            "只输出续写正文。单词必须在句子里，禁止单词清单。",
             `${weaveHint}\n---\n${raw.slice(-900)}\n---`
           );
           if (extra.trim() && !isUnusableStoryOutput(extra)) {

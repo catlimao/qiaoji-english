@@ -5,6 +5,9 @@ import { getPrimaryMeaning } from "./word-utils";
 const TOKEN_RE =
   /\[\[([^\]|]+)\|([^\]]+)\]\]|([A-Za-z][A-Za-z'-]*)(?:（([^）]+)）|\(([^)]+)\))/g;
 
+const DUMP_MARK_RE =
+  /咀嚼了几个词|默念这些词|事后她回想这场经历|心里默念这些词/;
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -27,7 +30,6 @@ function makeWordSegment(
 
 /**
  * 把模型常见错误写法「有利的（advantageous）」转成 [[advantageous|有利的]]
- * 读者端只高亮英文。
  */
 export function normalizeChineseParenEnglish(
   raw: string,
@@ -56,34 +58,19 @@ export function stripInlineGlosses(text: string): string {
     .replace(/\[\[([^\]|]+)\|[^\]]+\]\]/g, "$1");
 }
 
-/** 去掉「事后回想 / 咀嚼了几个词：a、b、c。」这类硬塞词表的劣质收尾 */
+/** 去掉文末单词清单式劣质收尾（原文级） */
 export function stripWordDumpEnding(text: string): string {
-  return text
-    .replace(
-      /\n*\s*(?:（?尾声）?)?[^\n]{0,40}(?:回想|回忆|默念|咀嚼)[^\n]{0,40}(?:词|单词)[：:]\s*[A-Za-z][\s\S]*$/,
-      ""
-    )
-    .replace(
-      /\n*\s*事后她回想这场经历，又咀嚼了几个词：[\s\S]*$/,
-      ""
-    )
-    .trimEnd();
-}
-
-export function sanitizeSegments(segments: StorySegment[]): StorySegment[] {
-  return segments.map((seg) => {
-    if (seg.type === "word") {
-      const pure = (seg.word?.word || seg.content)
-        .replace(/（.*?）|\(.*?\)/g, "")
-        .replace(/[\u4e00-\u9fff]/g, "")
-        .trim();
-      return { ...seg, content: pure || seg.content };
-    }
-    return {
-      ...seg,
-      content: stripInlineGlosses(stripWordDumpEnding(seg.content)),
-    };
-  });
+  let t = text;
+  // 精确命中旧版硬编码句
+  t = t.replace(/事后她回想这场经历，又咀嚼了几个词：[\s\S]*$/g, "");
+  t = t.replace(/（尾声）她在心里默念这些词：[\s\S]*$/g, "");
+  // 更宽：从「咀嚼/默念…词：」起切到文末（保留前面正文）
+  t = t.replace(
+    /[^\n。！？]*?(?:又)?(?:咀嚼了几个词|默念这些词)[：:][\s\S]*$/g,
+    ""
+  );
+  t = t.replace(/\n*（尾声）[^\n]*$/g, "");
+  return t.trimEnd();
 }
 
 function mergeAdjacentText(segments: StorySegment[]): StorySegment[] {
@@ -97,6 +84,53 @@ function mergeAdjacentText(segments: StorySegment[]): StorySegment[] {
     }
   }
   return merged;
+}
+
+/**
+ * 展示层再砍一遍：旧历史里若已经拆成「…咀嚼了几个词：」+ 单词高亮片段，整段丢掉。
+ */
+export function removeTrailingWordDumpSegments(
+  segments: StorySegment[]
+): StorySegment[] {
+  let cut = -1;
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.type === "text" && DUMP_MARK_RE.test(seg.content)) {
+      cut = i;
+      break;
+    }
+  }
+  if (cut < 0) return segments;
+
+  const head = segments.slice(0, cut);
+  const bad = segments[cut];
+  if (bad.type === "text") {
+    const trimmed = stripWordDumpEnding(bad.content);
+    if (trimmed.trim()) {
+      return mergeAdjacentText([
+        ...head,
+        { type: "text", content: trimmed },
+      ]);
+    }
+  }
+  return mergeAdjacentText(head);
+}
+
+export function sanitizeSegments(segments: StorySegment[]): StorySegment[] {
+  const cleaned = segments.map((seg) => {
+    if (seg.type === "word") {
+      const pure = (seg.word?.word || seg.content)
+        .replace(/（.*?）|\(.*?\)/g, "")
+        .replace(/[\u4e00-\u9fff]/g, "")
+        .trim();
+      return { ...seg, content: pure || seg.content };
+    }
+    return {
+      ...seg,
+      content: stripInlineGlosses(seg.content),
+    };
+  });
+  return removeTrailingWordDumpSegments(mergeAdjacentText(cleaned));
 }
 
 /** 把正文里未标记、但属于目标词表的英文词高亮出来 */
@@ -141,14 +175,6 @@ export function highlightBareTargetWords(
     }
   }
   return mergeAdjacentText(out);
-}
-
-/** @deprecated 已停用：禁止在文末罗列单词，不再自动补「咀嚼几个词」 */
-export function ensureTargetWordsPresent(
-  segments: StorySegment[],
-  _wordList: WordEntry[]
-): StorySegment[] {
-  return segments;
 }
 
 export function parseStory(
@@ -203,9 +229,8 @@ export function parseStory(
       ? segments
       : [{ type: "text", content: stripInlineGlosses(normalized) }]
   );
-  result = mergeAdjacentText(result);
   result = highlightBareTargetWords(result, wordList);
-  // 不再文末硬塞缺失词
+  result = removeTrailingWordDumpSegments(result);
   return result;
 }
 
@@ -232,22 +257,22 @@ export function buildPrompt(params: {
 
   const isSerial = params.mode === "serial";
 
-  const system = `你是中文网文作者。把学习词自然写进情节句子里，像普通叙事，不是背单词。
+  const system = `你是中文网文作者。学习词必须自然出现在完整情节句子里。
 
 硬性要求：
-1. 每个词都必须出现在完整句子中，格式只能是 [[英文|中文]]。
-2. 禁止在文末罗列单词；禁止「回想/默念/咀嚼了几个词：a、b、c」这类收尾。
+1. 每个词用 [[英文|中文]] 嵌进句子，例如：她推开[[door|门]]走出去。
+2. 严禁把单词写成清单贴在文末；故事必须以情节句号收束。
 3. 禁止英文推理、JSON、Markdown、括号释义。
-4. 词序随意，为情节服务。只输出正文。`;
+4. 词序随意。只输出正文。`;
 
   let user = `风格：${params.style}；篇幅：${lengthHint}；${
     isSerial ? `连载第${params.chapter ?? 1}章` : "完整单篇"
   }
-词表（逐个嵌进情节，勿罗列）：${wordLines}
+词表（嵌进句子，勿清单）：${wordLines}
 `;
 
   if (isSerial && params.previousRaw?.trim()) {
-    user += `前文摘要：\n${params.previousRaw.trim().slice(-600)}\n`;
+    user += `前文摘要：\n${stripWordDumpEnding(params.previousRaw.trim()).slice(-600)}\n`;
   }
 
   user += `直接输出完整正文。`;
