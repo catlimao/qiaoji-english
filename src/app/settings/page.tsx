@@ -15,12 +15,18 @@ export default function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
-    setConfig(getApiConfig());
+    // 设置页只展示用户自己保存的配置，不回填内置 Key
+    const savedCfg = getApiConfig();
+    setConfig({
+      ...savedCfg,
+      // 若本机没有用户自填 Key，保持「默认通道」视图
+      apiKey: (savedCfg.apiKey || "").trim() ? savedCfg.apiKey : "",
+    });
   }, []);
 
   const selectProvider = (provider: ProviderId) => {
     if (provider === "free") {
-      setConfig({ ...DEFAULT_API_CONFIG });
+      setConfig({ ...DEFAULT_API_CONFIG, apiKey: "" });
       setSaved(false);
       return;
     }
@@ -35,18 +41,25 @@ export default function SettingsPage() {
           : prev.provider === provider && prev.model
             ? prev.model
             : preset.defaultModel,
+      // 切换渠道时不带出任何内置密钥
+      apiKey: prev.provider === provider ? prev.apiKey : "",
     }));
     setSaved(false);
   };
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    saveApiConfig(config);
+    // 默认通道不把空 Key 写成脏配置
+    if (config.provider === "free" || !(config.apiKey || "").trim()) {
+      saveApiConfig({ ...DEFAULT_API_CONFIG });
+    } else {
+      saveApiConfig(config);
+    }
     setSaved(true);
   };
 
   const preset = getPreset(config.provider);
-  const isFree = config.provider === "free";
+  const isDefault = config.provider === "free" || !(config.apiKey || "").trim();
   const paidProviders = PROVIDER_PRESETS.filter((p) => p.id !== "free");
 
   return (
@@ -56,8 +69,7 @@ export default function SettingsPage() {
           API 配置
         </h1>
         <p className="mt-2 font-body text-sm leading-relaxed text-ink-600">
-          默认使用免费模型，浏览器直连，无需本站服务器。自备 API
-          若遇跨域失败，请继续用免费模型。
+          默认已可直接生成，无需填写密钥。仅在想换用自己的接口时再配置下方选项。
         </p>
       </div>
 
@@ -67,7 +79,7 @@ export default function SettingsPage() {
       >
         <div
           className={`rounded-xl border px-4 py-3 ${
-            isFree
+            isDefault
               ? "border-ink-800 bg-ink-900 text-paper"
               : "border-ink-200 bg-white/50"
           }`}
@@ -76,26 +88,26 @@ export default function SettingsPage() {
             <div>
               <p
                 className={`font-body text-sm font-medium ${
-                  isFree ? "text-paper" : "text-ink-900"
+                  isDefault ? "text-paper" : "text-ink-900"
                 }`}
               >
-                免费模型（推荐）
+                默认通道（推荐）
               </p>
               <p
                 className={`mt-1 font-body text-xs ${
-                  isFree ? "text-paper/75" : "text-ink-500"
+                  isDefault ? "text-paper/75" : "text-ink-500"
                 }`}
               >
-                开箱即用，不需配置 API Key
+                开箱即用，无需填写 API Key
               </p>
             </div>
-            {!isFree && (
+            {!isDefault && (
               <button
                 type="button"
                 onClick={() => selectProvider("free")}
                 className="shrink-0 rounded-lg bg-ink-900 px-3 py-1.5 text-xs text-paper"
               >
-                切回免费
+                切回默认
               </button>
             )}
           </div>
@@ -112,7 +124,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => selectProvider(p.id)}
                 className={`rounded-xl border px-3 py-2.5 text-left font-body text-sm transition ${
-                  config.provider === p.id
+                  !isDefault && config.provider === p.id
                     ? "border-ink-800 bg-ink-900 text-paper"
                     : "border-ink-200 bg-white/50 text-ink-800 hover:border-ink-300"
                 }`}
@@ -122,7 +134,7 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          {!isFree && (
+          {!isDefault && (
             <>
               <p className="font-body text-xs text-ink-500">{preset.hint}</p>
               <label className="block">
@@ -169,7 +181,7 @@ export default function SettingsPage() {
                       setConfig({ ...config, apiKey: e.target.value });
                       setSaved(false);
                     }}
-                    placeholder="sk-…"
+                    placeholder="在此填写你自己的 Key"
                     autoComplete="off"
                     className="w-full rounded-xl border border-ink-200 bg-white/70 px-3 py-2.5 font-body text-sm outline-none ring-accent/30 focus:ring-2"
                     required

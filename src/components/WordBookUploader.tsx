@@ -23,7 +23,7 @@ export function WordBookUploader({ onUploaded }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
+  const [percent, setPercent] = useState(0);
   const [result, setResult] = useState<UploadResult | null>(null);
 
   useEffect(() => {
@@ -39,11 +39,17 @@ export function WordBookUploader({ onUploaded }: Props) {
   const handleFile = async (file: File) => {
     setResult(null);
     setBusy(true);
-    setProgress("正在解析文件…");
+    setPercent(4);
     try {
-      let words = await parseUploadedWordBook(file, (label) => {
-        setProgress(label);
+      let words = await parseUploadedWordBook(file, (_label, done, total) => {
+        if (typeof done === "number" && typeof total === "number" && total > 0) {
+          // PDF 页进度：占前 55%
+          setPercent(Math.min(55, Math.round((done / total) * 55)));
+        } else {
+          setPercent((p) => Math.min(50, Math.max(p, 12)));
+        }
       });
+
       const needZh = words.some(
         (w) =>
           !w.meaning ||
@@ -51,11 +57,18 @@ export function WordBookUploader({ onUploaded }: Props) {
           !/[\u4e00-\u9fff]/.test(w.meaning)
       );
       if (needZh) {
-        setProgress("正在查询中文释义…");
+        setPercent(58);
         words = await enrichEmptyMeanings(words, (done, total) => {
-          setProgress(`正在查询中文释义 ${done}/${total}`);
+          const base = 58;
+          const span = 38;
+          setPercent(
+            Math.min(96, base + Math.round((done / Math.max(1, total)) * span))
+          );
         });
+      } else {
+        setPercent(90);
       }
+
       const bookName =
         name.trim() ||
         file.name.replace(/\.(json|csv|txt|tsv|docx|doc|pdf)$/i, "") ||
@@ -70,6 +83,7 @@ export function WordBookUploader({ onUploaded }: Props) {
       onUploaded(book);
       setName("");
       if (inputRef.current) inputRef.current.value = "";
+      setPercent(100);
       setResult({
         ok: true,
         title: "上传成功",
@@ -84,7 +98,7 @@ export function WordBookUploader({ onUploaded }: Props) {
       });
     } finally {
       setBusy(false);
-      setProgress(null);
+      setPercent(0);
     }
   };
 
@@ -121,8 +135,18 @@ export function WordBookUploader({ onUploaded }: Props) {
           if (f) void handleFile(f);
         }}
       />
-      {busy && progress && (
-        <p className="mt-3 font-body text-sm text-ink-500">{progress}</p>
+      {busy && (
+        <div className="mt-4 space-y-2" aria-live="polite" aria-label="上传进度">
+          <div className="h-2 overflow-hidden rounded-full bg-ink-100">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-200 ease-out"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <p className="text-right font-body text-xs text-ink-500">
+            {Math.round(percent)}%
+          </p>
+        </div>
       )}
 
       {result && (

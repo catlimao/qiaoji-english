@@ -112,7 +112,7 @@ export function GenerateForm({ onGenerated }: Props) {
 
     const useCustom = latestApi.provider !== "free";
     if (useCustom && !latestApi.apiKey.trim()) {
-      setError("自备模型需填写 API Key，或切回「免费模型」");
+      setError("自备模型需填写 API Key，或切回「默认通道」");
       return;
     }
     if (!book || book.words.length === 0) {
@@ -424,12 +424,14 @@ export function GenerateForm({ onGenerated }: Props) {
         <div className="mt-4 space-y-2" aria-live="polite">
           <div className="flex items-center justify-between font-body text-xs text-ink-600">
             <span>{progress.label}</span>
-            <span>{Math.round(progress.percent)}%</span>
+            <span className="tabular-nums">{Math.round(progress.percent)}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-ink-100">
+          <div className="h-2.5 overflow-hidden rounded-full bg-ink-100">
             <div
-              className="h-full rounded-full bg-accent transition-all duration-300 ease-out"
-              style={{ width: `${Math.min(100, Math.max(0, progress.percent))}%` }}
+              className="h-full rounded-full bg-accent transition-[width] duration-200 ease-linear"
+              style={{
+                width: `${Math.min(100, Math.max(0, progress.percent))}%`,
+              }}
             />
           </div>
         </div>
@@ -441,7 +443,7 @@ export function GenerateForm({ onGenerated }: Props) {
         className="mt-5 w-full rounded-xl bg-ink-900 px-4 py-3 font-body text-sm font-medium text-paper transition hover:bg-ink-800 disabled:cursor-wait disabled:opacity-70 sm:w-auto sm:min-w-[10rem]"
       >
         {loading
-          ? progress?.label || "生成中…"
+          ? `生成中 ${Math.round(progress?.percent ?? 0)}%`
           : settings.mode === "serial"
             ? settings.activeSeriesId
               ? "续写下一章"

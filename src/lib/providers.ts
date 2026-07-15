@@ -11,10 +11,10 @@ export type ProviderPreset = {
 export const PROVIDER_PRESETS: ProviderPreset[] = [
   {
     id: "free",
-    name: "免费模型（默认）",
+    name: "默认通道",
     baseUrl: "",
     defaultModel: "",
-    hint: "无需配置，开箱即用；若不可用可改用下方自备 API",
+    hint: "开箱即用，无需填写密钥",
   },
   {
     id: "deepseek",
