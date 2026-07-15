@@ -52,7 +52,7 @@ export default function BooksPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-ink-900">词书管理</h1>
         <p className="mt-2 font-body text-sm text-ink-600">
-          内置四六级 / 考研词书（词量已扩充），也可上传 TXT、Word（.docx）、CSV 或 JSON。
+          内置四六级 / 考研词书（含红宝书2026 约 6500 词），也可上传 TXT、Word、PDF、CSV 或 JSON。
           纯英文词表会自动查询中文释义。
         </p>
       </div>

@@ -2,6 +2,8 @@
  * 浏览器端可直接调用的 LLM（无需本站服务端 API）。
  */
 
+import { sanitizeLlmStoryOutput } from "./sanitize-llm-output";
+
 export type LlmEndpoint = {
   baseUrl: string;
   apiKey: string;
@@ -29,6 +31,7 @@ export function resolveClientFreeLlm(): LlmEndpoint {
   return {
     baseUrl: "https://text.pollinations.ai/openai",
     apiKey: "",
+    // 明确用较稳的快捷模型名；避免推理模型把 CoT 当正文
     model: envModel || "openai",
     label: "免费模型",
   };
@@ -42,7 +45,12 @@ function extractMessageContent(data: unknown): string {
   if (Array.isArray(choices) && choices[0]) {
     const first = choices[0] as Record<string, unknown>;
     const msg = first.message as Record<string, unknown> | undefined;
-    const content = msg?.content ?? first.text ?? first.content;
+    // 跳过 reasoning，只要 content
+    const content =
+      msg?.content ??
+      (typeof msg?.text === "string" ? msg.text : undefined) ??
+      first.text ??
+      first.content;
     if (typeof content === "string") return content.trim();
     if (Array.isArray(content)) {
       return content
@@ -50,6 +58,7 @@ function extractMessageContent(data: unknown): string {
           if (typeof p === "string") return p;
           if (p && typeof p === "object") {
             const part = p as Record<string, unknown>;
+            if (part.type === "reasoning") return "";
             return String(part.text ?? part.content ?? "");
           }
           return "";
@@ -63,7 +72,12 @@ function extractMessageContent(data: unknown): string {
   if (typeof obj.response === "string") return obj.response.trim();
   if (typeof obj.text === "string") return obj.text.trim();
   if (typeof obj.output === "string") return obj.output.trim();
+  // 不要把 reasoning 当正文
   return "";
+}
+
+function finalizeContent(raw: string): string {
+  return sanitizeLlmStoryOutput(raw) || raw.trim();
 }
 
 async function postChat(params: {
@@ -86,8 +100,10 @@ async function postChat(params: {
     headers,
     body: JSON.stringify({
       model: params.model.trim() || "openai",
-      temperature: params.temperature ?? 0.85,
-      max_tokens: 4096,
+      temperature: params.temperature ?? 0.75,
+      max_tokens: 2200,
+      // 部分兼容接口会识别，用于压住长推理
+      reasoning: false,
       messages: [
         { role: "system", content: params.system },
         { role: "user", content: params.user },
@@ -103,14 +119,16 @@ async function postChat(params: {
     !rawText.trim().startsWith("{") &&
     !rawText.trim().startsWith("[")
   ) {
-    return { content: rawText.trim() };
+    return { content: finalizeContent(rawText) };
   }
 
   let data: unknown;
   try {
     data = JSON.parse(rawText);
   } catch {
-    if (upstream.ok && rawText.trim()) return { content: rawText.trim() };
+    if (upstream.ok && rawText.trim()) {
+      return { content: finalizeContent(rawText) };
+    }
     return {
       error: `模型返回异常（HTTP ${upstream.status}）`,
       status: 502,
@@ -127,20 +145,19 @@ async function postChat(params: {
 
   const content = extractMessageContent(data);
   if (!content) return { error: "模型未返回正文", status: 502 };
-  return { content };
+  return { content: finalizeContent(content) };
 }
 
-/** GET 备用：提示词必须短，否则 URL 过长会被截断导致残篇/空文 */
 async function getChatFallback(
   system: string,
   user: string,
   model: string
 ): Promise<{ content: string } | { error: string; status: number }> {
   const shortSystem =
-    "写中文小说，学习词必须用[[英文|中文]]嵌入，禁止括号释义。只输出正文，篇幅尽量写满。";
-  const compactUser = user.length > 1200 ? `${user.slice(0, 1200)}\n…` : user;
+    "只输出中文小说正文。学习词用[[英文|中文]]。禁止英文推理、JSON、括号释义。";
+  const compactUser = user.length > 900 ? `${user.slice(0, 900)}\n…` : user;
   const prompt = `${shortSystem}\n\n${compactUser}`;
-  const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model || "openai")}&token=`;
+  const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model || "openai")}`;
 
   const res = await fetch(url);
   const text = (await res.text()).trim();
@@ -154,7 +171,9 @@ async function getChatFallback(
   if (/^\s*<!DOCTYPE|^\s*<html/i.test(text)) {
     return { error: "模型未返回正文", status: 502 };
   }
-  return { content: text };
+  const cleaned = finalizeContent(text);
+  if (!cleaned) return { error: "模型未返回正文", status: 502 };
+  return { content: cleaned };
 }
 
 export async function callChatCompletion(params: {
@@ -191,7 +210,7 @@ export async function callChatCompletion(params: {
       if (!("error" in result) && result.content.trim()) return result;
       if ("error" in result) lastError = result.error;
     } catch {
-      /* try next / fallback */
+      /* try next */
     }
   }
 

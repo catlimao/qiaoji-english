@@ -1,6 +1,100 @@
 import type { WordEntry } from "./types";
 import { translateEnToZh } from "./translate";
 
+/** 解码 HTML 实体与脏控制符 */
+function decodeDirtyText(raw: string): string {
+  return raw
+    .replace(/&#x0[dD];/gi, "")
+    .replace(/&#\d+;/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    .replace(/\r/g, "")
+    .trim();
+}
+
+/**
+ * 清洗释义：去掉拼音、词性前缀、占位符「—」，取干净中文
+ * 例：轉變 转变 [zhuan3 bian4] → 转变
+ *     v.安排 → 安排
+ *     （音乐）大声播放&#x0D; → （音乐）大声播放
+ */
+export function cleanMeaning(raw: string): {
+  meaning: string;
+  phonetic?: string;
+  pos?: string;
+} {
+  let s = decodeDirtyText(raw);
+  if (!s || /^[—\-–.•·]+$/.test(s)) {
+    return { meaning: "" };
+  }
+
+  let phonetic: string | undefined;
+  let pos: string | undefined;
+
+  const pinyinMatch = s.match(/\[([a-zA-Z0-9\s']+)\]/);
+  if (pinyinMatch) {
+    phonetic = `/${pinyinMatch[1].trim().replace(/\s+/g, " ")}/`;
+    s = s.replace(/\[[a-zA-Z0-9\s']+\]/g, " ");
+  }
+
+  const posMatch = s.match(
+    /^\s*((?:n|v|adj|adv|prep|conj|pron|num|int|vt|vi|aux)\.?)\s+/i
+  );
+  if (posMatch) {
+    pos = posMatch[1].endsWith(".") ? posMatch[1] : `${posMatch[1]}.`;
+    s = s.slice(posMatch[0].length);
+  }
+
+  s = s
+    .replace(/^[—\-–.•·\s]+/, "")
+    .replace(/[—\-–.•·\s]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // 「轉變 转变」按空白切开，取最后一块纯中文释义
+  const parts = s
+    .split(/\s+/)
+    .map((p) => p.trim())
+    .filter((p) => /[\u4e00-\u9fff]/.test(p));
+  if (parts.length >= 1) {
+    s = parts[parts.length - 1].replace(/[^\u4e00-\u9fff（）()\-]/g, "");
+  } else {
+    const hans = s.match(/[\u4e00-\u9fff（）()]+/g);
+    if (hans?.length) s = hans[hans.length - 1];
+  }
+
+  // 仍无中文则置空，留给 enrich
+  if (!/[\u4e00-\u9fff]/.test(s)) {
+    return { meaning: "", phonetic, pos };
+  }
+
+  return { meaning: s, phonetic, pos };
+}
+
+function makeEntry(
+  word: string,
+  meaningRaw: string,
+  extra?: Partial<WordEntry>
+): WordEntry | null {
+  const w = word.trim();
+  if (!w || !/^[A-Za-z]/.test(w)) return null;
+  const cleaned = cleanMeaning(meaningRaw || "");
+  const meaning = cleaned.meaning || w;
+  const entry: WordEntry = {
+    word: w,
+    meaning,
+    meanings: cleaned.meaning ? [cleaned.meaning] : undefined,
+    ...extra,
+  };
+  if (cleaned.phonetic && !entry.phonetic) entry.phonetic = cleaned.phonetic;
+  if (cleaned.pos && !entry.pos) entry.pos = cleaned.pos;
+  return entry;
+}
+
 function normalizeEntry(raw: Record<string, unknown>): WordEntry | null {
   const word = String(raw.word ?? raw.Word ?? raw.english ?? "").trim();
   let meaning = String(
@@ -9,25 +103,21 @@ function normalizeEntry(raw: Record<string, unknown>): WordEntry | null {
 
   let meanings: string[] | undefined;
   if (Array.isArray(raw.meanings)) {
-    meanings = raw.meanings.map((m) => String(m).trim()).filter(Boolean);
+    meanings = raw.meanings
+      .map((m) => cleanMeaning(String(m)).meaning)
+      .filter(Boolean);
   }
   if (!meaning && meanings?.length) meaning = meanings[0];
   if (!word) return null;
-  // 允许先无释义，后续异步查中文
-  if (!meaning) meaning = "";
 
-  if (!meanings && meaning) {
-    meanings = meaning
-      .split(/[；;｜|]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+  const cleaned = cleanMeaning(meaning);
+  const entry = makeEntry(word, cleaned.meaning || meaning);
+  if (!entry) return null;
+
+  if (meanings && meanings.length > 0) {
+    entry.meanings = meanings;
+    entry.meaning = meanings[0];
   }
-
-  const entry: WordEntry = {
-    word,
-    meaning: meanings?.[0] || meaning || word,
-    meanings: meanings && meanings.length > 0 ? meanings : undefined,
-  };
 
   const phonetic = String(raw.phonetic ?? raw.Phonetic ?? "").trim();
   const example = String(raw.example ?? raw.Example ?? "").trim();
@@ -75,9 +165,9 @@ function dedupe(words: WordEntry[]): WordEntry[] {
 
 const WORD_ONLY_RE = /^[A-Za-z][A-Za-z'-]*$/;
 const WORD_MEANING_RE =
-  /^([A-Za-z][A-Za-z'-]*)\s*[,，|｜\t:：\-–—]\s*(.+)$/;
+  /^([A-Za-z][A-Za-z'-]*)\s*[,，|｜:：\-–—]\s*(.+)$/;
 const WORD_SPACE_ZH_RE =
-  /^([A-Za-z][A-Za-z'-]*)\s+([\u4e00-\u9fff].+)$/;
+  /^([A-Za-z][A-Za-z'-]*)\s+(.+)$/;
 
 /** 纯英文词表：按空白/标点拆出全部单词 */
 export function parseEnglishOnlyList(text: string): WordEntry[] {
@@ -91,6 +181,22 @@ function textLooksEnglishOnly(text: string): boolean {
   if (hasHan) return false;
   const tokens = text.match(/[A-Za-z][A-Za-z'-]*/g) || [];
   return tokens.length >= 1;
+}
+
+/** Tab 分隔：word \\t meaning \\t … */
+function parseTabLine(line: string): WordEntry | null {
+  if (!line.includes("\t")) return null;
+  const cols = line.split("\t").map((c) => c.trim());
+  const word = cols[0] || "";
+  if (!WORD_ONLY_RE.test(word) && !/^[A-Za-z][A-Za-z'-]*$/.test(word)) {
+    return null;
+  }
+  // 合并后续含中文的列作为释义源
+  const meaningSrc = cols
+    .slice(1)
+    .filter((c) => c && !/^[—\-–.•·]+$/.test(c))
+    .join(" ");
+  return makeEntry(word, meaningSrc);
 }
 
 export function parseWordBookJson(text: string): WordEntry[] {
@@ -127,6 +233,16 @@ export function parseWordBookCsv(text: string): WordEntry[] {
     .map((l) => l.trim())
     .filter(Boolean);
   if (lines.length === 0) throw new Error("CSV 为空");
+
+  // 优先按 Tab 解析（Anki / 词表导出常见）
+  if (lines.filter((l) => l.includes("\t")).length >= Math.ceil(lines.length * 0.5)) {
+    const words: WordEntry[] = [];
+    for (const line of lines) {
+      const e = parseTabLine(line);
+      if (e) words.push(e);
+    }
+    if (words.length > 0) return dedupe(words);
+  }
 
   const split = (line: string) => {
     const cells: string[] = [];
@@ -172,14 +288,10 @@ export function parseWordBookCsv(text: string): WordEntry[] {
   for (let i = start; i < lines.length; i++) {
     const cells = split(lines[i]);
     const word = (cells[wordIdx] ?? "").trim();
-    const meaning = (cells[meaningIdx] ?? "").trim();
+    const meaningRaw = (cells[meaningIdx] ?? "").trim();
     if (!word) continue;
-    if (!meaning && WORD_ONLY_RE.test(word)) {
-      words.push({ word, meaning: word });
-      continue;
-    }
-    if (!meaning) continue;
-    const entry: WordEntry = { word, meaning };
+    const entry = makeEntry(word, meaningRaw);
+    if (!entry) continue;
     if (phoneticIdx >= 0 && cells[phoneticIdx]) {
       entry.phonetic = cells[phoneticIdx];
     }
@@ -196,13 +308,13 @@ export function parseWordBookCsv(text: string): WordEntry[] {
  * 纯文本词书，兼容：
  * - 每行一个英文单词
  * - abandon 放弃 / abandon|放弃 / abandon: 放弃
+ * - alter\\t轉變 转变 [zhuan3 bian4]\\t—
  * - Word 导出后可能全部挤在一行用空格分隔
  */
 export function parseWordBookTxt(text: string): WordEntry[] {
-  const cleaned = text.replace(/^\uFEFF/, "").trim();
+  const cleaned = decodeDirtyText(text.replace(/^\uFEFF/, "")).trim();
   if (!cleaned) throw new Error("TXT 为空");
 
-  // 全文无中文 → 整表当作英文单词列表（避免把末字母当成释义）
   if (textLooksEnglishOnly(cleaned)) {
     const only = parseEnglishOnlyList(cleaned);
     if (only.length === 0) throw new Error("未能从文件解析出英文单词");
@@ -220,6 +332,16 @@ export function parseWordBookTxt(text: string): WordEntry[] {
     return parseWordBookCsv(text);
   }
 
+  // 多数行含 Tab → 走 Tab 词表
+  if (lines.filter((l) => l.includes("\t")).length >= Math.ceil(lines.length * 0.4)) {
+    const tabWords: WordEntry[] = [];
+    for (const line of lines) {
+      const e = parseTabLine(line);
+      if (e) tabWords.push(e);
+    }
+    if (tabWords.length > 0) return dedupe(tabWords);
+  }
+
   const words: WordEntry[] = [];
 
   for (const line of lines) {
@@ -230,25 +352,26 @@ export function parseWordBookTxt(text: string): WordEntry[] {
       continue;
     }
 
+    const tabEntry = parseTabLine(line);
+    if (tabEntry) {
+      words.push(tabEntry);
+      continue;
+    }
+
     let m = line.match(WORD_MEANING_RE);
     if (m) {
-      words.push({
-        word: m[1].trim(),
-        meaning: m[2].trim(),
-      });
+      const e = makeEntry(m[1], m[2]);
+      if (e) words.push(e);
       continue;
     }
 
     m = line.match(WORD_SPACE_ZH_RE);
-    if (m) {
-      words.push({
-        word: m[1].trim(),
-        meaning: m[2].trim(),
-      });
+    if (m && /[\u4e00-\u9fff]/.test(m[2])) {
+      const e = makeEntry(m[1], m[2]);
+      if (e) words.push(e);
       continue;
     }
 
-    // 一行多个纯英文词（如 Word 粘成一行）
     if (!/[\u4e00-\u9fff]/.test(line)) {
       const tokens = line.match(/[A-Za-z][A-Za-z'-]*/g) || [];
       for (const t of tokens) words.push({ word: t, meaning: t });
@@ -257,7 +380,7 @@ export function parseWordBookTxt(text: string): WordEntry[] {
 
   if (words.length === 0) {
     throw new Error(
-      "未能解析出单词。支持：每行一个英文词，或「english 中文释义」"
+      "未能解析出单词。支持：每行一个英文词，或「english 中文」，或 Tab 分隔词表"
     );
   }
   return dedupe(words);
@@ -275,7 +398,7 @@ export async function enrichEmptyMeanings(
       w.meaning === w.word ||
       !/[\u4e00-\u9fff]/.test(w.meaning)
   );
-  const total = needLookup.length || words.length;
+  const total = needLookup.length || 1;
   let done = 0;
 
   for (const w of words) {
@@ -285,7 +408,15 @@ export async function enrichEmptyMeanings(
       !/[\u4e00-\u9fff]/.test(w.meaning);
 
     if (!needsZh) {
-      out.push(w);
+      // 再次清洗已有释义
+      const cleaned = cleanMeaning(w.meaning);
+      out.push({
+        ...w,
+        meaning: cleaned.meaning || w.meaning,
+        meanings: cleaned.meaning ? [cleaned.meaning] : w.meanings,
+        phonetic: w.phonetic || cleaned.phonetic,
+        pos: w.pos || cleaned.pos,
+      });
       continue;
     }
 
@@ -298,23 +429,28 @@ export async function enrichEmptyMeanings(
     done++;
     onProgress?.(done, total);
 
-    if (zh && /[\u4e00-\u9fff]/.test(zh) && zh.toLowerCase() !== w.word.toLowerCase()) {
-      // MyMemory 有时返回「单词：释义」之类，取中文部分
-      const cleaned = zh
-        .replace(new RegExp(w.word, "ig"), "")
-        .replace(/^[\s:：\-–—]+/, "")
-        .trim();
-      const meaning = cleaned || zh;
+    if (
+      zh &&
+      /[\u4e00-\u9fff]/.test(zh) &&
+      zh.toLowerCase() !== w.word.toLowerCase()
+    ) {
+      const cleaned = cleanMeaning(
+        zh
+          .replace(new RegExp(w.word, "ig"), "")
+          .replace(/^[\s:：\-–—]+/, "")
+          .trim() || zh
+      );
       out.push({
         ...w,
-        meaning,
-        meanings: [meaning],
+        meaning: cleaned.meaning || zh,
+        meanings: [cleaned.meaning || zh],
+        phonetic: w.phonetic || cleaned.phonetic,
+        pos: w.pos || cleaned.pos,
       });
     } else {
       out.push({ ...w, meaning: w.meaning || w.word });
     }
 
-    // 温和限速，避免免费接口炸掉
     if (needsZh) {
       await new Promise((r) => setTimeout(r, 120));
     }
@@ -332,13 +468,59 @@ export async function parseWordBookDocx(file: File): Promise<WordEntry[]> {
   return parseWordBookTxt(text);
 }
 
-export async function parseUploadedWordBook(file: File): Promise<WordEntry[]> {
+export async function parseWordBookPdf(
+  file: File,
+  onProgress?: (done: number, total: number) => void
+): Promise<WordEntry[]> {
+  const { extractTextFromPdf, parseBbdcStylePdfText } = await import(
+    "./parse-pdf"
+  );
+  const text = (await extractTextFromPdf(file, onProgress)).trim();
+  if (!text) throw new Error("PDF 没有可提取的文字（可能是扫描件图片）");
+
+  // 优先「不背单词」序号词表结构
+  const bbdc = parseBbdcStylePdfText(text);
+  if (bbdc.length >= 20) {
+    return dedupe(
+      bbdc.map((e) => ({
+        word: e.word,
+        meaning: e.meaning,
+        meanings: e.meanings,
+      }))
+    );
+  }
+
+  // 通用文本解析兜底
+  try {
+    return parseWordBookTxt(text);
+  } catch {
+    const only = parseEnglishOnlyList(text);
+    if (only.length === 0) {
+      throw new Error(
+        "未能从 PDF 解析出单词。请确认是可选中文字的 PDF，或改用 TXT/Word"
+      );
+    }
+    return only;
+  }
+}
+
+export async function parseUploadedWordBook(
+  file: File,
+  onProgress?: (label: string, done?: number, total?: number) => void
+): Promise<WordEntry[]> {
   const name = file.name.toLowerCase();
+
+  if (name.endsWith(".pdf")) {
+    onProgress?.("正在读取 PDF…");
+    return parseWordBookPdf(file, (done, total) => {
+      onProgress?.(`正在解析 PDF ${done}/${total} 页`, done, total);
+    });
+  }
 
   if (name.endsWith(".docx") || name.endsWith(".doc")) {
     if (name.endsWith(".doc") && !name.endsWith(".docx")) {
       throw new Error(
-        "暂不支持旧版 .doc，请另存为 .docx 或导出为 TXT 后再上传"
+        "暂不支持旧版 .doc，请另存为 .docx 或导出为 TXT / PDF 后再上传"
       );
     }
     return parseWordBookDocx(file);
@@ -347,7 +529,7 @@ export async function parseUploadedWordBook(file: File): Promise<WordEntry[]> {
   const text = await file.text();
 
   if (name.endsWith(".json")) return parseWordBookJson(text);
-  if (name.endsWith(".csv")) return parseWordBookCsv(text);
+  if (name.endsWith(".csv") || name.endsWith(".tsv")) return parseWordBookCsv(text);
   if (name.endsWith(".txt")) return parseWordBookTxt(text);
 
   try {

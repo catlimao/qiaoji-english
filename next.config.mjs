@@ -9,6 +9,14 @@ const nextConfig = {
   trailingSlash: true,
   basePath: basePath || undefined,
   assetPrefix: basePath || undefined,
+  webpack: (config) => {
+    // pdfjs 在客户端打包时避免 Node 侧 canvas 等可选依赖报错
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: false,
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

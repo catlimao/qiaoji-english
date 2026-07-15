@@ -2,6 +2,7 @@ import type { WordEntry, WordBook } from "./types";
 import cet4 from "@/data/cet4-sample.json";
 import cet6 from "@/data/cet6-sample.json";
 import kaoyan from "@/data/kaoyan-sample.json";
+import kaoyanHongbaoshu from "@/data/kaoyan-hongbaoshu-2026.json";
 
 export const BUILTIN_BOOKS: WordBook[] = [
   {
@@ -18,9 +19,15 @@ export const BUILTIN_BOOKS: WordBook[] = [
   },
   {
     id: "builtin-kaoyan",
-    name: "考研词汇",
+    name: "考研词汇（精简）",
     source: "builtin",
     words: kaoyan as WordEntry[],
+  },
+  {
+    id: "builtin-kaoyan-hongbaoshu-2026",
+    name: "考研红宝书2026（乱序）",
+    source: "builtin",
+    words: kaoyanHongbaoshu as WordEntry[],
   },
 ];
 

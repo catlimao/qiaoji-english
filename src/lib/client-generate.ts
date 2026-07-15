@@ -1,6 +1,10 @@
 import { buildPrompt, parseStory } from "@/lib/parse-story";
 import { callChatCompletion, resolveClientFreeLlm } from "@/lib/free-llm";
 import { resolveBaseUrl } from "@/lib/providers";
+import {
+  isUnusableStoryOutput,
+  sanitizeLlmStoryOutput,
+} from "@/lib/sanitize-llm-output";
 import { getPrimaryMeaning } from "@/lib/word-utils";
 import type {
   GenerateRequest,
@@ -27,46 +31,33 @@ function chineseLen(raw: string): number {
   return (raw.match(/[\u4e00-\u9fff]/g) || []).length;
 }
 
-function targetChars(length: GenerateRequest["length"]): number {
-  if (length === "short") return 160;
-  if (length === "long") return 1000;
-  return 550;
-}
-
 function minCharsForLength(length: GenerateRequest["length"]): number {
-  return Math.floor(targetChars(length) * 0.55);
+  if (length === "short") return 70;
+  if (length === "long") return 350;
+  return 180;
 }
 
-function looksIncomplete(raw: string): boolean {
-  const t = raw.trim();
-  if (!t) return true;
-  // 没有中文句末标点，或结尾像被截断
-  if (!/[。！？…」』]$/.test(t) && !/[.!?]"?$/.test(t)) return true;
-  if (/[,，、：:]$/.test(t)) return true;
-  if (/(他说|她说|于是|然后|突然|就在这时)\s*$/.test(t)) return true;
-  return false;
-}
-
-function needsRetry(
+function needsHardRetry(
   raw: string,
   segments: StorySegment[],
   words: WordEntry[],
   length: GenerateRequest["length"]
 ): boolean {
-  if (!raw.trim()) return true;
+  if (isUnusableStoryOutput(raw)) return true;
   if (chineseLen(raw) < minCharsForLength(length)) return true;
-  if (countWords(segments) < Math.max(1, Math.ceil(words.length * 0.4))) {
+  // 一篇至少命中约 30% 目标词即可；其余靠本地补词
+  if (countWords(segments) < Math.max(1, Math.ceil(words.length * 0.3))) {
     return true;
   }
   return false;
 }
 
-function needsContinue(
-  raw: string,
-  length: GenerateRequest["length"]
-): boolean {
-  if (chineseLen(raw) < targetChars(length) * 0.75) return true;
-  if (looksIncomplete(raw)) return true;
+function needsOneContinue(raw: string, length: GenerateRequest["length"]): boolean {
+  const floor =
+    length === "short" ? 100 : length === "long" ? 500 : 280;
+  if (chineseLen(raw) < floor) return true;
+  const t = raw.trim();
+  if (/[,，、：:]$/.test(t)) return true;
   return false;
 }
 
@@ -98,7 +89,7 @@ export async function generateStoryClient(
   if (!style?.trim()) throw new Error("请填写小说类型/风格");
   if (!words?.length) throw new Error("单词列表无效");
 
-  progress(8, "准备生成…");
+  progress(10, "准备生成…");
 
   const useFree = provider === "free" || !apiKey?.trim();
 
@@ -128,10 +119,14 @@ export async function generateStoryClient(
     llmModel = model.trim();
   }
 
+  // 免费通道词太多时大幅拖慢且易乱码：自动截到 12
+  const genWords =
+    useFree && words.length > 12 ? words.slice(0, 12) : words;
+
   const { system, user } = buildPrompt({
     style,
-    words,
-    length,
+    words: genWords,
+    length: useFree && length === "long" ? "medium" : length,
     mode,
     seriesTitle,
     chapter,
@@ -149,29 +144,24 @@ export async function generateStoryClient(
     if ("error" in result) {
       throw new Error(sanitizeError(result.error));
     }
-    return result.content;
+    return sanitizeLlmStoryOutput(result.content) || result.content;
   };
 
-  progress(25, "正在向模型请求正文…");
+  progress(30, "正在生成正文…");
   let raw = await callOnce(system, user);
-  progress(55, "正在检查篇幅与用词…");
   let segments = parseStory(raw, words);
 
-  if (needsRetry(raw, segments, words, length)) {
-    progress(60, "正文不达标，正在重新生成…");
-    const retryUser = `${user}
-
-【二次生成要求】上一次输出不合格。请重新完整写作：
-1. 只用 [[英文|中文]]，禁止「有利的（advantageous）」这类写法
-2. 每个词都要出现，顺序随意
-3. 故事情节完整，不要中途停笔
-4. 直接输出正文`;
+  // 仅在严重不合格时重试一次（控制总耗时）
+  if (needsHardRetry(raw, segments, genWords, length)) {
+    progress(55, "正在修正输出…");
     try {
-      const retryRaw = await callOnce(system, retryUser);
+      const retryRaw = await callOnce(
+        system,
+        `${user}\n\n只输出小说正文，禁止英文说明/JSON/推理。学习词格式：[[word|中文]]。`
+      );
       const retrySeg = parseStory(retryRaw, words);
       if (
-        !needsRetry(retryRaw, retrySeg, words, length) ||
-        countWords(retrySeg) > countWords(segments) ||
+        !needsHardRetry(retryRaw, retrySeg, genWords, length) ||
         chineseLen(retryRaw) > chineseLen(raw)
       ) {
         raw = retryRaw;
@@ -182,50 +172,38 @@ export async function generateStoryClient(
     }
   }
 
-  // 截断续写（最多两轮）
-  for (let i = 0; i < 2 && needsContinue(raw, length); i++) {
-    progress(70 + i * 10, i === 0 ? "正文偏短，正在续写…" : "继续补完结局…");
+  // 最多续写一轮
+  if (needsOneContinue(raw, length) && !isUnusableStoryOutput(raw)) {
+    progress(75, "补全结尾…");
     const present = new Set(
-      parseStory(raw, words)
+      segments
         .filter((s) => s.type === "word" && s.word)
         .map((s) => s.word!.word.toLowerCase())
     );
-    const missing = words.filter((w) => !present.has(w.word.toLowerCase()));
-    const continueUser = `下面是一篇未完成的中文小说正文。请从断点无缝续写到完整结局，不要重复已有段落，不要另起新故事。
-续写时仍可用 [[英文|中文]] 嵌入尚未出现的学习词。
-禁止输出「中文（english）」写法。
-
-已写正文：
----
-${raw.slice(-1500)}
----
-
-尚未嵌入的单词：
-${
-  missing.length
-    ? missing.map((w) => `- ${w.word}｜${getPrimaryMeaning(w)}`).join("\n")
-    : "（已全部出现，请专注把结局写完）"
-}
-
-请只输出续写部分。`;
+    const missing = genWords.filter((w) => !present.has(w.word.toLowerCase()));
     try {
       const extra = await callOnce(
-        "你负责把半截中文小说续写完整。只输出续写正文。",
-        continueUser
+        "只输出续写正文，不要解释。",
+        `续写完下面故事并收束。可用 [[英文|中文]]。\n---\n${raw.slice(-900)}\n---\n未用词：${
+          missing.map((w) => `${w.word}|${getPrimaryMeaning(w)}`).join("; ") || "无"
+        }`
       );
-      if (extra.trim()) {
+      if (extra.trim() && !isUnusableStoryOutput(extra)) {
         raw = `${raw.trim()}\n\n${extra.trim()}`;
         segments = parseStory(raw, words);
       }
     } catch {
-      break;
+      /* ignore */
     }
   }
 
-  progress(92, "正在整理高亮…");
+  progress(95, "整理高亮…");
+  raw = sanitizeLlmStoryOutput(raw) || raw;
 
-  if (!raw.trim()) {
-    throw new Error("模型未返回正文");
+  if (!raw.trim() || (isUnusableStoryOutput(raw) && chineseLen(raw) < 40)) {
+    throw new Error(
+      "模型返回了无效正文（可能被限流或输出了推理草稿）。请稍后再试，或在「API 配置」使用自备 Key。"
+    );
   }
 
   progress(100, "完成");

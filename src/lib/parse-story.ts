@@ -221,69 +221,33 @@ export function buildPrompt(params: {
 }): { system: string; user: string } {
   const lengthHint =
     params.length === "short"
-      ? "短篇：正文 160–220 汉字，必须写完结局"
+      ? "约180字，写完结局"
       : params.length === "long"
-        ? "长篇：正文 1000–1200 汉字，必须写完完整结局，禁止中途停笔"
-        : "中篇：正文 550–800 汉字，必须写完完整结局，禁止中途停笔";
+        ? "约1000字，写完结局"
+        : "约500字，写完结局";
 
-  // 打乱列表顺序展示，避免模型按表序机械堆砌
   const shuffled = [...params.words].sort(() => Math.random() - 0.5);
   const wordLines = shuffled
-    .map((w) => `- ${w.word}｜${getPrimaryMeaning(w)}`)
-    .join("\n");
+    .map((w) => `${w.word}|${getPrimaryMeaning(w)}`)
+    .join("，");
 
   const isSerial = params.mode === "serial";
 
-  const structureRules = isSerial
-    ? `10. 这是连载第 ${params.chapter ?? 1} 章。剧情须与前文连贯，承接人物与冲突，可以留下悬念，但本章自身要有完整的小高潮与阶段收束。
-11. 不要重复复述上一章全文；自然衔接即可。
-12. 不要输出“第X章”标题，只输出本章正文。`
-    : `10. 这是独立成篇的完整故事：开端→发展→转折→收束，因果清楚，读完应觉得故事讲完了。
-11. 禁止在高潮处突然结束；必须写出明确结局。
-12. 不要输出标题，只输出正文。`;
+  const system = `写中文网文，情节完整合理。学习词嵌入格式唯一合法：[[英文|中文]]。
+禁止：英文推理、JSON、Markdown、「中文（english）」、括号释义、输出规则解释。
+词可按情节穿插，不必按表序。只输出正文。`;
 
-  const system = `你是一位擅长将英语单词自然融入中文网文的职业编剧。故事必须有清晰人物动机与情节逻辑；英语学习词只作为叙事中的自然零件，不是填表。
-
-硬性规则：
-1. 全文以中文为主；学习目标词必须保留英文拼写，且正文里只能出现英文本身（不要在英文旁再写中文）。
-2. 每个给定单词至少出现一次，按情节需要穿插即可，【不必按词表顺序】，也禁止机械逐词堆砌。
-3. 嵌入格式只能用：[[英文单词|中文释义]]
-   正确：她看出这是[[advantageous|有利的]]局面
-   错误：有利的（advantageous）、advantageous（有利的）、有利的advantageous
-4. 绝对禁止「中文释义（英文）」或「英文（中文释义）」写法。
-5. 中文释义必须与词表一致；专有名词可用拼音或中文；不要额外编造词表外学习词。
-6. 分段清晰，段间空行；不要 Markdown、不要解释、不要前后缀。
-7. 情节合理：人物言行符合身份，冲突有因，结果有果，避免无意义口号与空洞抒情。
-${structureRules}
-13. 写完前自检：每个目标词都已用 [[word|释义]] 出现；句号收束完整；字数达标。`;
-
-  let user = `小说类型/风格：${params.style}
-篇幅要求：${lengthHint}
-模式：${isSerial ? "连载" : "完整单篇"}
+  let user = `风格：${params.style}；篇幅：${lengthHint}；${
+    isSerial ? `连载第${params.chapter ?? 1}章` : "完整单篇"
+  }
+词表：${wordLines}
 `;
 
-  if (isSerial) {
-    user += `连载标题：${params.seriesTitle || params.style}
-章节：第 ${params.chapter ?? 1} 章
-`;
-    if (params.previousRaw?.trim()) {
-      user += `
-上一章正文（请连贯续写，勿照抄）：
----
-${params.previousRaw.trim().slice(-1200)}
----
-`;
-    } else {
-      user += `这是连载的第一章，请开篇立住人物与主线冲突。
-`;
-    }
+  if (isSerial && params.previousRaw?.trim()) {
+    user += `前文摘要：\n${params.previousRaw.trim().slice(-600)}\n`;
   }
 
-  user += `
-必须嵌入的单词（顺序随意，服务情节即可）：
-${wordLines}
-
-请直接输出完整小说正文。`;
+  user += `直接输出正文。`;
 
   return { system, user };
 }

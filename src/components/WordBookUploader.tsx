@@ -41,7 +41,9 @@ export function WordBookUploader({ onUploaded }: Props) {
     setBusy(true);
     setProgress("正在解析文件…");
     try {
-      let words = await parseUploadedWordBook(file);
+      let words = await parseUploadedWordBook(file, (label) => {
+        setProgress(label);
+      });
       const needZh = words.some(
         (w) =>
           !w.meaning ||
@@ -56,7 +58,7 @@ export function WordBookUploader({ onUploaded }: Props) {
       }
       const bookName =
         name.trim() ||
-        file.name.replace(/\.(json|csv|txt|docx|doc)$/i, "") ||
+        file.name.replace(/\.(json|csv|txt|tsv|docx|doc|pdf)$/i, "") ||
         "自定义词书";
       const book: WordBook = {
         id: `upload-${Date.now()}`,
@@ -92,8 +94,9 @@ export function WordBookUploader({ onUploaded }: Props) {
         上传词书
       </h2>
       <p className="mt-1 font-body text-sm text-ink-500">
-        支持 TXT / Word(.docx) / CSV / JSON。可每行一个英文单词（会自动查中文），也可
+        支持 TXT / Word(.docx) / PDF / CSV / TSV / JSON。可每行一个英文词，或
         <code className="mx-1 rounded bg-ink-100 px-1">abandon 放弃</code>
+        ；PDF 支持「不背单词」等序号词表（扫描图片件无法识别）。
       </p>
       <label className="mt-4 block">
         <span className="mb-1.5 block font-body text-xs font-medium text-ink-500">
@@ -110,7 +113,7 @@ export function WordBookUploader({ onUploaded }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".txt,.docx,.csv,.json,text/plain,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".txt,.docx,.pdf,.csv,.tsv,.json,text/plain,application/json,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="mt-4 block w-full font-body text-sm text-ink-700 file:mr-3 file:rounded-lg file:border-0 file:bg-ink-900 file:px-3 file:py-2 file:text-sm file:text-paper file:hover:bg-ink-800"
         disabled={busy}
         onChange={(e) => {
